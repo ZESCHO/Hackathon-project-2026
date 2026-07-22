@@ -1,5 +1,7 @@
 # Team Git & GitHub Guide
 
+Press Ctrl + Shift + V if viewing from VS code
+
 Welcome to the team! We have **two repositories** set up:
 1. **`hackathon-prep`**: For notes, study materials, and cheat sheets.
 2. **`hackathon-test-project`**: For our practice codebase.
