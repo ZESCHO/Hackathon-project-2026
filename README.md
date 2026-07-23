@@ -20,7 +20,7 @@ Welcome to the team! We have **two repositories** set up:
 
 ---
 
-## 🛠️ 2. Step-by-Step Command Manual
+## 2. Step-by-Step Command Manual
 
 ### Step 1: Initial Setup (Do once per repo)
 Clone the repo to your computer:
@@ -70,7 +70,7 @@ git push origin feature/login-screen
 
 ---
 
-## ⚠️ 3. Golden Rules to Prevent Issues
+## 3. Golden Rules to Prevent Issues
 
 1. **Pull Before You Code:** Always run `git pull origin main` before starting a new feature to avoid code conflicts.
 2. **Commit Often:** Small commits (e.g., `git commit -m "Fix button color"`) are easier to fix than one huge commit at the end of the day.
