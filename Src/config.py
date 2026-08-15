@@ -44,16 +44,16 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # --------------------------------------------------
-    # OPENAI
-    # --------------------------------------------------
+    # # --------------------------------------------------
+    # # OPENAI
+    # # --------------------------------------------------
 
-    AI_API_KEY = os.getenv(
-        "AI_API_KEY",
-        ""
-    )
+    # AI_API_KEY = os.getenv(
+    #     "AI_API_KEY",
+    #     ""
+    # )
 
-    AI_MODEL = os.getenv(
-        "AI_MODEL",
-        "gpt-5.6-luna"
-    )
+    # AI_MODEL = os.getenv(
+    #     "AI_MODEL",
+    #     "gpt-5.6-luna"
+    # )
