@@ -5,24 +5,17 @@
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>
         Dashboard | Human-in-the-Loop Agentic AI
     </title>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}"
-    >
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
     <script src="{{ url_for('static', filename='theme.js') }}"></script>
 
     <style>
-
         /* =====================================================
            DASHBOARD
         ===================================================== */
@@ -60,11 +53,9 @@
         .security-banner {
 
             background:
-                linear-gradient(
-                    135deg,
+                linear-gradient(135deg,
                     #eff6ff,
-                    #eef2ff
-                );
+                    #eef2ff);
 
             border: 1px solid #dbeafe;
 
@@ -406,11 +397,9 @@
         .recent-card {
 
             background:
-                linear-gradient(
-                    180deg,
+                linear-gradient(180deg,
                     rgba(15, 23, 36, 0.9),
-                    rgba(9, 15, 24, 0.9)
-                );
+                    rgba(9, 15, 24, 0.9));
 
             border-radius: 24px;
 
@@ -619,11 +608,9 @@
             text-decoration: none;
             color: var(--text-strong);
             background:
-                linear-gradient(
-                    135deg,
+                linear-gradient(135deg,
                     rgba(13, 24, 39, 0.96),
-                    rgba(17, 28, 45, 0.88)
-                );
+                    rgba(17, 28, 45, 0.88));
             border: 1px solid rgba(125, 211, 252, 0.16);
             box-shadow:
                 0 14px 32px rgba(4, 10, 20, 0.2);
@@ -735,7 +722,6 @@
             }
 
         }
-
     </style>
 
 </head>
@@ -744,24 +730,24 @@
 <body>
 
 
-<!-- =====================================================
+    <!-- =====================================================
      NAVBAR
 ===================================================== -->
 
-<header class="navbar">
+    <header class="navbar">
 
-    <div class="logo">
-        🤖 Human-in-the-Loop AI
-    </div>
+        <div class="logo">
+            🤖 Human-in-the-Loop AI
+        </div>
 
 
-    <nav>
+        <nav>
 
-        <a href="/">
-            Dashboard
-        </a>
+            <a href="/">
+                Dashboard
+            </a>
 
-        {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
 
             <a href="/approval">
                 Approval Center
@@ -771,542 +757,530 @@
                 Audit Trail
             </a>
 
-        {% endif %}
+            {% endif %}
 
-        <a href="/requests">
-            Request Tracking
-        </a>
+            <a href="/requests">
+                Request Tracking
+            </a>
 
-        {% if session.get("user_id") %}
+            {% if session.get("user_id") %}
             <a href="/logout">
                 Logout
             </a>
-        {% else %}
+            {% else %}
             <a href="/login">
                 Login
             </a>
-        {% endif %}
+            {% endif %}
 
-    </nav>
-
-
-    <div style="display: flex; align-items: center; gap: 8px;">
-        <button class="ai-chat-button" onclick="openAIChat()">💬 AI Agent</button>
-    </div>
-
-</header>
+        </nav>
 
 
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="ai-chat-button" onclick="openAIChat()">💬 AI Agent</button>
+        </div>
 
-<!-- =====================================================
+    </header>
+
+
+
+    <!-- =====================================================
      MAIN
 ===================================================== -->
 
-<main class="container">
+    <main class="container">
 
 
-    <!-- =====================================================
+        <!-- =====================================================
          HERO
     ===================================================== -->
 
-    <section class="hero dashboard-hero">
+        <section class="hero dashboard-hero">
 
-        <h1>
-            🤖 Human-in-the-Loop Agentic AI
-        </h1>
+            <h1>
+                🤖 Human-in-the-Loop Agentic AI
+            </h1>
 
-        <p>
-            Autonomous institutional service delivery with
-            secure human oversight, auditable workflows,
-            and policy-aware decision support.
-        </p>
+            <p>
+                Autonomous institutional service delivery with
+                secure human oversight, auditable workflows,
+                and policy-aware decision support.
+            </p>
 
-    </section>
+        </section>
 
 
 
-    <!-- =====================================================
+        <!-- =====================================================
          SECURITY
     ===================================================== -->
 
-    <section class="security-banner">
+        <section class="security-banner">
 
-        <h2>
-            🛡️ Human Oversight for Institutional Decisions
-        </h2>
+            <h2>
+                🛡️ Human Oversight for Institutional Decisions
+            </h2>
 
-        <p>
-            This platform understands service requests, plans multi-step actions,
-            retrieves verified institutional information, and routes approvals
-            before any consequential action is executed. Human reviewers remain
-            in control of policy-critical outcomes.
-        </p>
+            <p>
+                This platform understands service requests, plans multi-step actions,
+                retrieves verified institutional information, and routes approvals
+                before any consequential action is executed. Human reviewers remain
+                in control of policy-critical outcomes.
+            </p>
 
-        <div class="security-status">
+            <div class="security-status">
 
-            🟢
+                🟢
 
-            Policy-Aware Execution Active
+                Policy-Aware Execution Active
 
-        </div>
+            </div>
 
-    </section>
+        </section>
 
 
 
-    <!-- =====================================================
+        <!-- =====================================================
          STATISTICS
     ===================================================== -->
 
-    <section>
+        <section>
 
-        <h2 class="section-title">
-            📊 Platform Overview
-        </h2>
-
-
-        <div class="stats-grid">
+            <h2 class="section-title">
+                📊 Platform Overview
+            </h2>
 
 
-            <!-- TOTAL -->
+            <div class="stats-grid">
 
-            <div class="stat-card">
 
-                <div class="stat-icon">
-                    📋
+                <!-- TOTAL -->
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        📋
+                    </div>
+
+                    <div class="stat-number">
+                        {{ total_requests }}
+                    </div>
+
+                    <div class="stat-label">
+                        Total Requests
+                    </div>
+
                 </div>
 
-                <div class="stat-number">
-                    {{ total_requests }}
+
+
+                <!-- PENDING -->
+
+                <div class="stat-card pending-card">
+
+                    <div class="stat-icon">
+                        🟡
+                    </div>
+
+                    <div class="stat-number">
+                        {{ pending_requests }}
+                    </div>
+
+                    <div class="stat-label">
+                        Pending Approval
+                    </div>
+
                 </div>
 
-                <div class="stat-label">
-                    Total Requests
+
+
+                <!-- APPROVED -->
+
+                <div class="stat-card approved-card">
+
+                    <div class="stat-icon">
+                        🟢
+                    </div>
+
+                    <div class="stat-number">
+                        {{ approved_requests }}
+                    </div>
+
+                    <div class="stat-label">
+                        Approved
+                    </div>
+
                 </div>
+
+
+
+                <!-- REJECTED -->
+
+                <div class="stat-card rejected-card">
+
+                    <div class="stat-icon">
+                        🔴
+                    </div>
+
+                    <div class="stat-number">
+                        {{ rejected_requests }}
+                    </div>
+
+                    <div class="stat-label">
+                        Rejected
+                    </div>
+
+                </div>
+
+
+
+                <!-- EXECUTED -->
+
+                <div class="stat-card executed-card">
+
+                    <div class="stat-icon">
+                        🔵
+                    </div>
+
+                    <div class="stat-number">
+                        {{ executed_requests }}
+                    </div>
+
+                    <div class="stat-label">
+                        Executed
+                    </div>
+
+                </div>
+
 
             </div>
 
-
-
-            <!-- PENDING -->
-
-            <div class="stat-card pending-card">
-
-                <div class="stat-icon">
-                    🟡
-                </div>
-
-                <div class="stat-number">
-                    {{ pending_requests }}
-                </div>
-
-                <div class="stat-label">
-                    Pending Approval
-                </div>
-
-            </div>
+        </section>
 
 
 
-            <!-- APPROVED -->
-
-            <div class="stat-card approved-card">
-
-                <div class="stat-icon">
-                    🟢
-                </div>
-
-                <div class="stat-number">
-                    {{ approved_requests }}
-                </div>
-
-                <div class="stat-label">
-                    Approved
-                </div>
-
-            </div>
-
-
-
-            <!-- REJECTED -->
-
-            <div class="stat-card rejected-card">
-
-                <div class="stat-icon">
-                    🔴
-                </div>
-
-                <div class="stat-number">
-                    {{ rejected_requests }}
-                </div>
-
-                <div class="stat-label">
-                    Rejected
-                </div>
-
-            </div>
-
-
-
-            <!-- EXECUTED -->
-
-            <div class="stat-card executed-card">
-
-                <div class="stat-icon">
-                    🔵
-                </div>
-
-                <div class="stat-number">
-                    {{ executed_requests }}
-                </div>
-
-                <div class="stat-label">
-                    Executed
-                </div>
-
-            </div>
-
-
-        </div>
-
-    </section>
-
-
-
-    <!-- =====================================================
+        <!-- =====================================================
          ANALYTICS
     ===================================================== -->
 
-    <section>
+        <section>
 
-        <h2 class="section-title">
-            📈 Request Analytics
-        </h2>
-
-
-        <div class="analytics-grid">
+            <h2 class="section-title">
+                📈 Request Analytics
+            </h2>
 
 
-            <!-- STATUS ANALYTICS -->
-
-            <div class="analytics-card">
-
-                <h3>
-                    📊 Request Status
-                </h3>
+            <div class="analytics-grid">
 
 
-                {% set total = total_requests if total_requests > 0 else 1 %}
+                <!-- STATUS ANALYTICS -->
+
+                <div class="analytics-card">
+
+                    <h3>
+                        📊 Request Status
+                    </h3>
 
 
-                <div class="status-row">
+                    {% set total = total_requests if total_requests > 0 else 1 %}
 
-                    <div class="status-header">
 
-                        <span class="status-name">
-                            🟡 Pending
-                        </span>
+                    <div class="status-row">
 
-                        <span class="status-value">
-                            {{ pending_requests }}
-                        </span>
+                        <div class="status-header">
 
-                    </div>
+                            <span class="status-name">
+                                🟡 Pending
+                            </span>
 
-                    <div class="progress">
+                            <span class="status-value">
+                                {{ pending_requests }}
+                            </span>
 
-                        <div
-                            class="progress-bar progress-pending"
-                            style="
+                        </div>
+
+                        <div class="progress">
+
+                            <div class="progress-bar progress-pending" style="
                                 width:
                                 {{ (pending_requests / total * 100)|round(0) }}%;
-                            "
-                        ></div>
+                            "></div>
+
+                        </div>
 
                     </div>
 
-                </div>
 
 
+                    <div class="status-row">
 
-                <div class="status-row">
+                        <div class="status-header">
 
-                    <div class="status-header">
+                            <span class="status-name">
+                                🟢 Approved
+                            </span>
 
-                        <span class="status-name">
-                            🟢 Approved
-                        </span>
+                            <span class="status-value">
+                                {{ approved_requests }}
+                            </span>
 
-                        <span class="status-value">
-                            {{ approved_requests }}
-                        </span>
+                        </div>
 
-                    </div>
+                        <div class="progress">
 
-                    <div class="progress">
-
-                        <div
-                            class="progress-bar progress-approved"
-                            style="
+                            <div class="progress-bar progress-approved" style="
                                 width:
                                 {{ (approved_requests / total * 100)|round(0) }}%;
-                            "
-                        ></div>
+                            "></div>
+
+                        </div>
 
                     </div>
 
-                </div>
 
 
+                    <div class="status-row">
 
-                <div class="status-row">
+                        <div class="status-header">
 
-                    <div class="status-header">
+                            <span class="status-name">
+                                🔴 Rejected
+                            </span>
 
-                        <span class="status-name">
-                            🔴 Rejected
-                        </span>
+                            <span class="status-value">
+                                {{ rejected_requests }}
+                            </span>
 
-                        <span class="status-value">
-                            {{ rejected_requests }}
-                        </span>
+                        </div>
 
-                    </div>
+                        <div class="progress">
 
-                    <div class="progress">
-
-                        <div
-                            class="progress-bar progress-rejected"
-                            style="
+                            <div class="progress-bar progress-rejected" style="
                                 width:
                                 {{ (rejected_requests / total * 100)|round(0) }}%;
-                            "
-                        ></div>
+                            "></div>
+
+                        </div>
 
                     </div>
 
-                </div>
 
 
+                    <div class="status-row">
 
-                <div class="status-row">
+                        <div class="status-header">
 
-                    <div class="status-header">
+                            <span class="status-name">
+                                🔵 Executed
+                            </span>
 
-                        <span class="status-name">
-                            🔵 Executed
-                        </span>
+                            <span class="status-value">
+                                {{ executed_requests }}
+                            </span>
 
-                        <span class="status-value">
-                            {{ executed_requests }}
-                        </span>
+                        </div>
 
-                    </div>
+                        <div class="progress">
 
-                    <div class="progress">
-
-                        <div
-                            class="progress-bar progress-executed"
-                            style="
+                            <div class="progress-bar progress-executed" style="
                                 width:
                                 {{ (executed_requests / total * 100)|round(0) }}%;
-                            "
-                        ></div>
+                            "></div>
+
+                        </div>
 
                     </div>
+
+
+                </div>
+
+
+
+                <!-- SERVICE ANALYTICS -->
+
+                <div class="analytics-card">
+
+                    <h3>
+                        🧩 Service Distribution
+                    </h3>
+
+
+                    <div class="service-row">
+
+                        <div class="service-info">
+
+                            <div class="service-icon">
+                                📜
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Certificates
+                                </strong>
+
+                                <small>
+                                    Certificate requests
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="service-count">
+                            {{ certificate_requests }}
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="service-row">
+
+                        <div class="service-info">
+
+                            <div class="service-icon">
+                                🔧
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Maintenance
+                                </strong>
+
+                                <small>
+                                    Maintenance tickets
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="service-count">
+                            {{ maintenance_requests }}
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="service-row">
+
+                        <div class="service-info">
+
+                            <div class="service-icon">
+                                🧪
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Laboratory
+                                </strong>
+
+                                <small>
+                                    Laboratory bookings
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="service-count">
+                            {{ laboratory_requests }}
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="service-row">
+
+                        <div class="service-info">
+
+                            <div class="service-icon">
+                                📝
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Grievances
+                                </strong>
+
+                                <small>
+                                    Grievance submissions
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="service-count">
+                            {{ grievance_requests }}
+                        </div>
+
+                    </div>
+
 
                 </div>
 
 
             </div>
 
-
-
-            <!-- SERVICE ANALYTICS -->
-
-            <div class="analytics-card">
-
-                <h3>
-                    🧩 Service Distribution
-                </h3>
-
-
-                <div class="service-row">
-
-                    <div class="service-info">
-
-                        <div class="service-icon">
-                            📜
-                        </div>
-
-                        <div>
-
-                            <strong>
-                                Certificates
-                            </strong>
-
-                            <small>
-                                Certificate requests
-                            </small>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="service-count">
-                        {{ certificate_requests }}
-                    </div>
-
-                </div>
+        </section>
 
 
 
-                <div class="service-row">
-
-                    <div class="service-info">
-
-                        <div class="service-icon">
-                            🔧
-                        </div>
-
-                        <div>
-
-                            <strong>
-                                Maintenance
-                            </strong>
-
-                            <small>
-                                Maintenance tickets
-                            </small>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="service-count">
-                        {{ maintenance_requests }}
-                    </div>
-
-                </div>
-
-
-
-                <div class="service-row">
-
-                    <div class="service-info">
-
-                        <div class="service-icon">
-                            🧪
-                        </div>
-
-                        <div>
-
-                            <strong>
-                                Laboratory
-                            </strong>
-
-                            <small>
-                                Laboratory bookings
-                            </small>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="service-count">
-                        {{ laboratory_requests }}
-                    </div>
-
-                </div>
-
-
-
-                <div class="service-row">
-
-                    <div class="service-info">
-
-                        <div class="service-icon">
-                            📝
-                        </div>
-
-                        <div>
-
-                            <strong>
-                                Grievances
-                            </strong>
-
-                            <small>
-                                Grievance submissions
-                            </small>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="service-count">
-                        {{ grievance_requests }}
-                    </div>
-
-                </div>
-
-
-            </div>
-
-
-        </div>
-
-    </section>
-
-
-
-    <!-- =====================================================
+        <!-- =====================================================
          RECENT ACTIVITY
     ===================================================== -->
 
-    <section class="recent-card">
+        <section class="recent-card">
 
-        <h2>
-            🕒 Recent Activity
-        </h2>
+            <h2>
+                🕒 Recent Activity
+            </h2>
 
 
-        {% if recent_requests %}
+            {% if recent_requests %}
 
             <div class="recent-requests-container">
 
                 {% for item in recent_requests %}
 
-                    <div class="recent-request">
+                <div class="recent-request">
 
-                        <div>
+                    <div>
 
-                            <strong>
+                        <strong>
 
-                                📄 Request #{{ item.id }}
+                            📄 Request #{{ item.id }}
 
-                            </strong>
-
-
-                            <p>
-
-                                {{ item.request_text }}
-
-                            </p>
-
-                        </div>
+                        </strong>
 
 
-                        <span class="status-badge">
+                        <p>
 
-                            {{ item.status }}
+                            {{ item.request_text }}
 
-                        </span>
+                        </p>
 
                     </div>
+
+
+                    <span class="status-badge">
+
+                        {{ item.status }}
+
+                    </span>
+
+                </div>
 
 
                 {% endfor %}
@@ -1318,7 +1292,7 @@
             </a>
 
 
-        {% else %}
+            {% else %}
 
             <div class="empty-state">
 
@@ -1326,112 +1300,144 @@
 
             </div>
 
-        {% endif %}
+            {% endif %}
 
 
-    </section>
+        </section>
 
 
 
-    <!-- =====================================================
+        <!-- =====================================================
          SERVICES
     ===================================================== -->
 
-    <section class="info-card">
+        <section class="info-card">
 
-        <h2>
-            ⚡ Institutional Services
-        </h2>
-
-
-        <div class="quick-actions">
+            <h2>
+                ⚡ Institutional Services
+            </h2>
 
 
-            <a href="/certificate" class="quick-action-card">
-                <span class="quick-action-icon">📄</span>
-                <span class="quick-action-title">Certificate Request</span>
-            </a>
+            <div class="quick-actions">
 
 
-            <a href="/maintenance" class="quick-action-card">
-                <span class="quick-action-icon">🔧</span>
-                <span class="quick-action-title">Maintenance Ticket</span>
-            </a>
+                <a href="/certificate" class="quick-action-card">
+                    <span class="quick-action-icon">📄</span>
+                    <span class="quick-action-title">Certificate Request</span>
+                </a>
 
 
-            <a href="/laboratory" class="quick-action-card">
-                <span class="quick-action-icon">🧪</span>
-                <span class="quick-action-title">Laboratory Booking</span>
-            </a>
+                <a href="/maintenance" class="quick-action-card">
+                    <span class="quick-action-icon">🔧</span>
+                    <span class="quick-action-title">Maintenance Ticket</span>
+                </a>
 
 
-            <a href="/grievance" class="quick-action-card">
-                <span class="quick-action-icon">⚠️</span>
-                <span class="quick-action-title">Grievance</span>
-            </a>
+                <a href="/laboratory" class="quick-action-card">
+                    <span class="quick-action-icon">🧪</span>
+                    <span class="quick-action-title">Laboratory Booking</span>
+                </a>
 
 
-            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+                <a href="/grievance" class="quick-action-card">
+                    <span class="quick-action-icon">⚠️</span>
+                    <span class="quick-action-title">Grievance</span>
+                </a>
+
+
+                {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
 
                 <a href="/approval" class="quick-action-card">
                     <span class="quick-action-icon">🔐</span>
                     <span class="quick-action-title">Approval Center</span>
                 </a>
 
-            {% endif %}
+                {% endif %}
 
 
-            <a href="/requests" class="quick-action-card">
-                <span class="quick-action-icon">📋</span>
-                <span class="quick-action-title">Track Requests</span>
-            </a>
+                <a href="/requests" class="quick-action-card">
+                    <span class="quick-action-icon">📋</span>
+                    <span class="quick-action-title">Track Requests</span>
+                </a>
 
 
-            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+                {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
 
                 <a href="/audit" class="quick-action-card">
                     <span class="quick-action-icon">📜</span>
                     <span class="quick-action-title">Audit Trail</span>
                 </a>
 
-            {% endif %}
+                {% endif %}
 
 
-        </div>
+            </div>
 
-    </section>
-
-
-</main>
+        </section>
 
 
-<!-- =====================================================
+    </main>
+
+
+    <!-- =====================================================
      AI CHAT MODAL
 ===================================================== -->
 
-<div id="ai-chat-modal">
-    <div class="ai-chat-container">
-        <div class="ai-chat-header">
-            <h2>🤖 AI Assistant</h2>
-            <button class="ai-close-btn" onclick="closeAIChat()">✕</button>
-        </div>
-        <div id="ai-chat-box">
-            <div class="ai-message bot-message">
-                <div class="ai-message-content">
-                    Hello! I'm your AI assistant. I can help you with institutional service requests, answer questions about our processes, and guide you through the system. How can I help you today?
+    <div id="ai-chat-modal">
+        <div class="ai-chat-container">
+            <div class="ai-chat-header">
+                <h2>🤖 AI Assistant</h2>
+                <button class="ai-close-btn" onclick="closeAIChat()">✕</button>
+            </div>
+            <div id="ai-chat-box">
+                <div class="ai-message bot-message">
+                    <div class="ai-message-content">
+                        Hello! I'm your AI assistant. I can help you with institutional service requests, answer
+                        questions about our processes, and guide you through the system. How can I help you today?
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="ai-chat-footer">
-            <input 
-                type="text" 
-                id="ai-input" 
-                placeholder="Ask me anything..."
-            >
-            <button class="ai-send-btn" onclick="sendAIMessage()">Send</button>
+            <div class="ai-chat-footer">
+                <input type="text" id="ai-input" placeholder="Ask me anything...">
+                <button class="ai-send-btn" onclick="sendAIMessage()">Send</button>
+            </div>
         </div>
     </div>
-</div>
+
+    <script>
+        function openAIChat() {
+            document.getElementById("ai-chat-modal").style.display = "flex";
+        }
+        function closeAIChat() {
+            document.getElementById("ai-chat-modal").style.display = "none";
+        }
+
+        function addAIMessage(text, sender) {
+            const chatBox = document.getElementById("ai-chat-box");
+            const msg = document.createElement("div");
+            msg.className = sender === "user" ? "ai-message user-message" : "ai-message bot-message";
+            msg.innerHTML = `<div class="ai-message-content">${text}</div>`;
+            chatBox.appendChild(msg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendAIMessage() {
+            const input = document.getElementById("ai-input");
+            const message = input.value.trim();
+            if (!message) return;
+
+            addAIMessage(message, "user");
+            input.value = "";
+
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: message })
+            });
+            const data = await response.json();
+            addAIMessage(data.reply, "bot");
+        }
+    </script>
 
 
 </body>

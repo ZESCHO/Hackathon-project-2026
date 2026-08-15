@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:600px;margin:auto;">
+  <div id="chat-window" style="height:400px;overflow-y:auto;border:1px solid #ccc;padding:10px;"></div>
+  <form id="chat-form" style="display:flex;gap:8px;margin-top:10px;">
+    <input type="text" id="chat-input" placeholder="Type your message..." style="flex:1;padding:8px;" autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+const chatWindow = document.getElementById("chat-window");
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+
+function addMessage(text, sender) {
+  const msg = document.createElement("div");
+  msg.style.margin = "6px 0";
+  msg.style.textAlign = sender === "user" ? "right" : "left";
+  msg.textContent = text;
+  chatWindow.appendChild(msg);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+chatForm.addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const message = chatInput.value.trim();
+  if (!message) return;
+
+  addMessage(message, "user");
+  chatInput.value = "";
+
+  const response = await fetch("/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: message })
+  });
+  const data = await response.json();
+  addMessage(data.reply, "bot");
+});
+</script>
+{% endblock %}
