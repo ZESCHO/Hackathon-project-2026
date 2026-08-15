@@ -1,4 +1,5 @@
 from datetime import datetime
+import requests
 
 from flask import (
     Flask,
@@ -28,6 +29,24 @@ app.secret_key = os.environ.get(
     "secure-agentic-ai-development-key"
 )
 
+def ask_model(user_message):
+    payload = {
+        "model": "qwen3:8b",
+        "prompt": user_message,
+        "stream": False
+    }
+    response = requests.post("http://localhost:11434/api/generate", json=payload)
+    return response.json()["response"]
+
+@app.route("/chat", methods=["POST"])
+
+def chat():
+    data = request.get_json()
+    user_message = data.get("message")
+    reply = ask_model(user_message)
+    return jsonify({"reply": reply})
+
+    
 # =========================================================
 # DATABASE CONFIGURATION
 # =========================================================
