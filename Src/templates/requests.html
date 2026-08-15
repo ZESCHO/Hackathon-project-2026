@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Request Tracking | Human-in-the-Loop Agentic AI
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     NAVBAR
+===================================================== -->
+
+<header class="navbar">
+
+    <div class="logo">
+        🤖 Human-in-the-Loop AI
+    </div>
+
+
+    <nav>
+
+        <a href="/">
+            Dashboard
+        </a>
+
+        {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+
+            <a href="/approval">
+                Approval Center
+            </a>
+
+            <a href="/audit">
+                Audit Trail
+            </a>
+
+        {% endif %}
+
+        <a href="/requests">
+            Request Tracking
+        </a>
+
+        {% if session.get("user_id") %}
+
+            <a href="/logout">
+                Logout
+            </a>
+
+        {% else %}
+
+            <a href="/login">
+                Login
+            </a>
+
+        {% endif %}
+
+    </nav>
+
+</header>
+
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="container">
+
+
+    <!-- HERO -->
+
+    <section class="hero">
+
+        <h1>
+            📋 Request Tracking
+        </h1>
+
+        <p>
+            Monitor the complete lifecycle of your
+            institutional service requests.
+        </p>
+
+    </section>
+
+
+
+    <!-- SECURITY -->
+
+    <section class="security-banner">
+
+        <h2>
+            🔐 Transparent Request Lifecycle
+        </h2>
+
+        <p>
+            Every request moves through controlled
+            stages and cannot bypass the approval
+            and execution policies.
+        </p>
+
+    </section>
+
+
+
+    <!-- USER INFORMATION -->
+
+    {% if session.get("user_id") %}
+
+    <section class="info-card">
+
+        <h2>
+            👤 Your Account
+        </h2>
+
+        <p>
+            <strong>
+                User ID:
+            </strong>
+
+            {{ session.get("user_id") }}
+        </p>
+
+        <p>
+            <strong>
+                Name:
+            </strong>
+
+            {{ session.get("user_name") }}
+        </p>
+
+        <p>
+            <strong>
+                Role:
+            </strong>
+
+            {{ session.get("user_role") }}
+        </p>
+
+    </section>
+
+    {% endif %}
+
+
+
+    <!-- REQUEST LIST -->
+
+    {% if requests %}
+
+
+        <section>
+
+            <h2 class="section-title">
+                📑 Your Requests
+            </h2>
+
+
+            {% for item in requests %}
+
+
+            <div class="request-card">
+
+
+                <!-- REQUEST HEADER -->
+
+                <div class="request-header">
+
+                    <div>
+
+                        <h2 class="request-title">
+
+                            {% if item.category and
+                                  "Certificate" in item.category %}
+
+                                📄
+
+                            {% elif item.category and
+                                  "Maintenance" in item.category %}
+
+                                🔧
+
+                            {% elif item.category and
+                                  "Laboratory" in item.category %}
+
+                                🧪
+
+                            {% elif item.category and
+                                  "Grievance" in item.category %}
+
+                                ⚠️
+
+                            {% else %}
+
+                                📋
+
+                            {% endif %}
+
+                            {{ item.category or "Service Request" }}
+
+                        </h2>
+
+
+                        <p class="request-id">
+
+                            Request #{{ item.id }}
+
+                        </p>
+
+                    </div>
+
+
+
+                    <!-- STATUS -->
+
+                    {% set status =
+                        (item.status or "UNKNOWN")|upper
+                    %}
+
+
+                    {% if status in
+                        ["PENDING", "PENDING APPROVAL"] %}
+
+                        <span
+                            class="
+                                status-badge
+                                status-pending
+                            "
+                        >
+
+                            🟡 Pending Approval
+
+                        </span>
+
+
+                    {% elif status == "APPROVED" %}
+
+                        <span
+                            class="
+                                status-badge
+                                status-approved
+                            "
+                        >
+
+                            🟢 Approved
+
+                        </span>
+
+
+                    {% elif status == "REJECTED" %}
+
+                        <span
+                            class="
+                                status-badge
+                                status-rejected
+                            "
+                        >
+
+                            🔴 Rejected
+
+                        </span>
+
+
+                    {% elif status == "EXECUTED" %}
+
+                        <span
+                            class="
+                                status-badge
+                                status-executed
+                            "
+                        >
+
+                            🔵 Executed
+
+                        </span>
+
+
+                    {% else %}
+
+                        <span class="status-badge">
+
+                            {{ item.status }}
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+
+                <!-- REQUEST DETAILS -->
+
+                <div class="request-details">
+
+
+                    <p>
+
+                        👤
+
+                        <strong>
+                            User:
+                        </strong>
+
+                        {% if item.user %}
+
+                            {{ item.user.name }}
+
+                        {% else %}
+
+                            {{ session.get(
+                                "user_name",
+                                "Current User"
+                            ) }}
+
+                        {% endif %}
+
+                    </p>
+
+
+
+                    <p>
+
+                        🆔
+
+                        <strong>
+                            Request ID:
+                        </strong>
+
+                        #{{ item.id }}
+
+                    </p>
+
+
+
+                    <p>
+
+                        🔖
+
+                        <strong>
+                            Category:
+                        </strong>
+
+                        {{ item.category or
+                           "Service Request" }}
+
+                    </p>
+
+
+
+                    {% if item.created_at %}
+
+                    <p>
+
+                        🕒
+
+                        <strong>
+                            Submitted:
+                        </strong>
+
+                        {{ item.created_at.strftime(
+                            "%d %b %Y, %I:%M %p"
+                        ) }}
+
+                    </p>
+
+                    {% endif %}
+
+
+
+                    {% if item.updated_at %}
+
+                    <p>
+
+                        🔄
+
+                        <strong>
+                            Last Updated:
+                        </strong>
+
+                        {{ item.updated_at.strftime(
+                            "%d %b %Y, %I:%M %p"
+                        ) }}
+
+                    </p>
+
+                    {% endif %}
+
+
+                </div>
+
+
+
+                <!-- REQUEST DESCRIPTION -->
+
+                <div class="request-description">
+
+                    <strong>
+                        📄 Request Details
+                    </strong>
+
+                    <p>
+
+                        {{ item.request_text }}
+
+                    </p>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     TIMELINE
+                ================================================= -->
+
+                <div class="tracking-timeline">
+
+
+                    <!-- STEP 1 -->
+
+                    <div
+                        class="
+                            timeline-step
+                            {% if status in
+                                [
+                                    'PENDING',
+                                    'PENDING APPROVAL',
+                                    'APPROVED',
+                                    'REJECTED',
+                                    'EXECUTED'
+                                ]
+                            %}
+                                active
+                            {% endif %}
+                        "
+                    >
+
+                        <span>
+                            1
+                        </span>
+
+                        <strong>
+                            Request Submitted
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- STEP 2 -->
+
+                    <div
+                        class="
+                            timeline-step
+                            {% if status in
+                                [
+                                    'APPROVED',
+                                    'REJECTED',
+                                    'EXECUTED'
+                                ]
+                            %}
+                                active
+                            {% endif %}
+                        "
+                    >
+
+                        <span>
+                            2
+                        </span>
+
+                        <strong>
+                            Human Review
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- STEP 3 -->
+
+                    <div
+                        class="
+                            timeline-step
+                            {% if status in
+                                [
+                                    'APPROVED',
+                                    'EXECUTED'
+                                ]
+                            %}
+                                active
+                            {% endif %}
+                        "
+                    >
+
+                        <span>
+                            3
+                        </span>
+
+                        <strong>
+                            Approved
+                        </strong>
+
+                    </div>
+
+
+
+                    <!-- STEP 4 -->
+
+                    <div
+                        class="
+                            timeline-step
+                            {% if status == "EXECUTED" %}
+                                active
+                            {% endif %}
+                        "
+                    >
+
+                        <span>
+                            4
+                        </span>
+
+                        <strong>
+                            Executed
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =================================================
+                     STATUS MESSAGE
+                ================================================= -->
+
+                {% if status == "REJECTED" %}
+
+                    <div class="rejected-message">
+
+                        🔴
+
+                        <strong>
+                            Request Rejected
+                        </strong>
+
+                        <br>
+
+                        This request was rejected during
+                        authorized human review.
+
+                    </div>
+
+
+                {% elif status in
+                    ["PENDING", "PENDING APPROVAL"] %}
+
+                    <div class="approved-message">
+
+                        ⏳
+
+                        <strong>
+                            Awaiting Human Approval
+                        </strong>
+
+                        <br>
+
+                        Your request has been submitted
+                        and is waiting for authorized
+                        human review.
+
+                    </div>
+
+
+                {% elif status == "APPROVED" %}
+
+                    <div class="approved-message">
+
+                        🟢
+
+                        <strong>
+                            Request Approved
+                        </strong>
+
+                        <br>
+
+                        Your request has been approved
+                        and is ready for controlled
+                        execution.
+
+                    </div>
+
+
+                {% elif status == "EXECUTED" %}
+
+                    <div class="executed-message">
+
+                        🔵
+
+                        <strong>
+                            Request Executed
+                        </strong>
+
+                        <br>
+
+                        Your request has successfully
+                        completed controlled execution.
+
+                    </div>
+
+                {% endif %}
+
+
+            </div>
+
+
+            {% endfor %}
+
+        </section>
+
+
+    {% else %}
+
+
+        <!-- EMPTY STATE -->
+
+        <section class="empty-state">
+
+            <div class="empty-icon">
+                📭
+            </div>
+
+            <h3>
+                No Requests Yet
+            </h3>
+
+            <p>
+                You haven't submitted any service
+                requests yet.
+            </p>
+
+
+            <br>
+
+
+            <a
+                href="/certificate"
+                class="ai-button"
+            >
+                🚀 Submit Your First Request
+            </a>
+
+        </section>
+
+
+    {% endif %}
+
+
+</main>
+
+
+</body>
+
+</html>

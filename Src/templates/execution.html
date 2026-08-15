@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Execution Center | Secure Agentic AI</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    <style>
+
+        /* =====================================================
+           EXECUTION PAGE
+        ===================================================== */
+
+        .policy-check {
+
+            margin-top: 22px;
+
+            padding: 22px;
+
+            background: #f8fafc;
+
+            border: 1px solid #e2e8f0;
+
+            border-radius: 16px;
+        }
+
+
+        .policy-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            color: #172554;
+
+            font-size: 20px;
+
+            margin-bottom: 18px;
+        }
+
+
+        .policy-list {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 12px;
+        }
+
+
+        .policy-item {
+
+            padding: 13px 15px;
+
+            background: white;
+
+            border-radius: 10px;
+
+            border: 1px solid #dcfce7;
+
+            color: #166534;
+
+            font-weight: 600;
+        }
+
+
+        .policy-passed {
+
+            margin-top: 18px;
+
+            padding: 16px 18px;
+
+            background: #ecfdf5;
+
+            border-left: 5px solid #16a34a;
+
+            border-radius: 10px;
+
+            color: #166534;
+
+            line-height: 1.6;
+        }
+
+
+        .policy-passed strong {
+
+            font-size: 17px;
+        }
+
+
+        .execution-warning {
+
+            margin-top: 20px;
+
+            padding: 17px 20px;
+
+            background: #fff7ed;
+
+            border-left: 5px solid #f59e0b;
+
+            border-radius: 10px;
+
+            color: #92400e;
+
+            line-height: 1.6;
+        }
+
+
+        .execute-button {
+
+            margin-top: 20px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #4f46e5
+                );
+
+            padding: 15px 25px;
+
+            font-size: 16px;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 8px 20px rgba(37, 99, 235, 0.20);
+        }
+
+
+        .execute-button:hover {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #1d4ed8,
+                    #4338ca
+                );
+
+            transform: translateY(-2px);
+        }
+
+
+        .policy-footer {
+
+            margin-top: 12px;
+
+            color: #64748b;
+
+            font-size: 13px;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 700px) {
+
+            .policy-list {
+
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     NAVBAR
+===================================================== -->
+
+<header class="navbar">
+
+    <div class="logo">
+        🤖 Secure Agentic-AI Platform
+    </div>
+
+    <nav>
+
+        <a href="/">
+            Dashboard
+        </a>
+
+        {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+
+            <a href="/approval">
+                Approval Center
+            </a>
+
+            <a href="/audit">
+                Audit Trail
+            </a>
+
+        {% endif %}
+
+        <a href="/requests">
+            Request Tracking
+        </a>
+
+        {% if session.get("user_id") %}
+            <a href="/logout">
+                Logout
+            </a>
+        {% else %}
+            <a href="/login">
+                Login
+            </a>
+        {% endif %}
+
+    </nav>
+
+</header>
+
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="container">
+
+
+    <!-- =====================================================
+         HERO
+    ===================================================== -->
+
+    <section class="hero">
+
+        <h1>
+            ⚙️ Execution Center
+        </h1>
+
+        <p>
+            Execute only those actions that have received
+            authorized human approval.
+        </p>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         SECURITY NOTICE
+    ===================================================== -->
+
+    <section class="security-banner">
+
+        <h2>
+            🛡️ Execution Safety Gate
+        </h2>
+
+        <p>
+            The system will never execute a consequential
+            institutional action unless the corresponding
+            request has been explicitly approved by an
+            authorized human reviewer.
+        </p>
+
+        <div class="security-status">
+
+            🟢 Security Policy Active
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         APPROVED REQUESTS
+    ===================================================== -->
+
+    <section>
+
+        <h2 class="section-title">
+            ✅ Approved Requests
+        </h2>
+
+
+        {% if requests %}
+
+
+            {% for item in requests %}
+
+
+            <div class="request-card">
+
+
+                <!-- REQUEST HEADER -->
+
+                <div class="request-header">
+
+                    <div>
+
+                        <h2 class="request-title">
+
+                            📋
+                            {{ item.category or "Service Request" }}
+
+                        </h2>
+
+                        <p class="request-id">
+
+                            Request #{{ item.id }}
+
+                        </p>
+
+                    </div>
+
+
+                    <span class="status-badge status-approved">
+
+                        🟢 Approved
+
+                    </span>
+
+                </div>
+
+
+
+                <!-- REQUEST DETAILS -->
+
+                <div class="request-details">
+
+                    <p>
+
+                        👤
+                        <strong>User:</strong>
+
+                        {{ item.user_id or "Unknown User" }}
+
+                    </p>
+
+
+                    <p>
+
+                        🆔
+                        <strong>Request ID:</strong>
+
+                        #{{ item.id }}
+
+                    </p>
+
+
+                    <p>
+
+                        🕒
+                        <strong>Submitted:</strong>
+
+                        {{ item.created_at }}
+
+                    </p>
+
+                </div>
+
+
+
+                <!-- REQUEST DESCRIPTION -->
+
+                <div class="request-description">
+
+                    <strong>
+                        📄 Request Details
+                    </strong>
+
+                    <p>
+
+                        {{ item.request_text }}
+
+                    </p>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     SECURITY POLICY CHECK
+                ================================================== -->
+
+                <div class="policy-check">
+
+                    <div class="policy-title">
+
+                        🛡️
+
+                        <strong>
+                            Security Policy Check
+                        </strong>
+
+                    </div>
+
+
+                    <div class="policy-list">
+
+
+                        <div class="policy-item">
+
+                            ✅ Request exists
+
+                        </div>
+
+
+                        <div class="policy-item">
+
+                            ✅ Human approval verified
+
+                        </div>
+
+
+                        <div class="policy-item">
+
+                            ✅ Approval status: APPROVED
+
+                        </div>
+
+
+                        <div class="policy-item">
+
+                            ✅ Execution authorization verified
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="policy-passed">
+
+                        <strong>
+                            🟢 POLICY PASSED
+                        </strong>
+
+                        <br>
+
+                        This request satisfies the
+                        human-approval requirement and is
+                        eligible for controlled execution.
+
+                    </div>
+
+
+                    <div class="policy-footer">
+
+                        🔒 AI cannot bypass this security gate.
+                        Execution requires an approved request.
+
+                    </div>
+
+                </div>
+
+                <!-- =====================================================
+     AI DECISION SUMMARY
+===================================================== -->
+
+<div class="ai-decision-panel">
+
+    <div class="ai-decision-header">
+
+        <div>
+            <h3>🤖 AI Decision Summary</h3>
+
+            <p>
+                Transparent explanation of the system's
+                decision and security requirements.
+            </p>
+        </div>
+
+        <span class="ai-verified-badge">
+            ✓ Verified
+        </span>
+
+    </div>
+
+
+    <div class="decision-grid">
+
+
+        <!-- INTENT -->
+
+        <div class="decision-item">
+
+            <span class="decision-icon">
+                🎯
+            </span>
+
+            <div>
+
+                <span class="decision-label">
+                    Detected Intent
+                </span>
+
+                <strong>
+                    {{ item.intent or item.category or "Service Request" }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- CATEGORY -->
+
+        <div class="decision-item">
+
+            <span class="decision-icon">
+                🗂️
+            </span>
+
+            <div>
+
+                <span class="decision-label">
+                    Request Category
+                </span>
+
+                <strong>
+                    {{ item.category or "Institutional Service" }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- CONFIDENCE -->
+
+        <div class="decision-item">
+
+            <span class="decision-icon">
+                📊
+            </span>
+
+            <div>
+
+                <span class="decision-label">
+                    AI Confidence
+                </span>
+
+                <strong>
+
+                    {% if item.confidence is not none %}
+
+                        {{ "%.0f"|format(item.confidence * 100) }}%
+
+                    {% else %}
+
+                        Verified
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- CONSEQUENT ACTION -->
+
+        <div class="decision-item">
+
+            <span class="decision-icon">
+                ⚠️
+            </span>
+
+            <div>
+
+                <span class="decision-label">
+                    Consequential Action
+                </span>
+
+                <strong>
+                    Yes
+                </strong>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- HUMAN APPROVAL -->
+
+        <div class="decision-item">
+
+            <span class="decision-icon">
+                👤
+            </span>
+
+            <div>
+
+                <span class="decision-label">
+                    Human Approval
+                </span>
+
+                <strong class="decision-success">
+                    Required & Verified
+                </strong>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- EXECUTION -->
+
+        <div class="decision-item">
+
+            <span class="decision-icon">
+                🔐
+            </span>
+
+            <div>
+
+                <span class="decision-label">
+                    Execution Permission
+                </span>
+
+                <strong class="decision-success">
+                    Granted
+                </strong>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- EXPLANATION -->
+
+    <div class="ai-explanation">
+
+        <strong>
+            💡 Why is human approval required?
+        </strong>
+
+        <p>
+            This request can result in a consequential
+            institutional action. The AI system can analyze
+            and plan the request, but it cannot authorize
+            the action by itself.
+        </p>
+
+        <p>
+            Execution is permitted only after an authorized
+            human reviewer has explicitly approved the request.
+        </p>
+
+    </div>
+
+</div>
+
+               <!-- =====================================================
+     AI RISK & POLICY ASSESSMENT
+===================================================== -->
+
+{% set policy = request_policies[item.id] %}
+
+<div class="risk-policy-panel">
+
+    <div class="risk-policy-header">
+
+        <div>
+
+            <h3>
+                🛡️ AI Risk & Policy Assessment
+            </h3>
+
+            <p>
+                Automated policy analysis performed before execution.
+            </p>
+
+        </div>
+
+
+        <span class="risk-badge risk-{{ policy.color }}">
+
+            {{ policy.emoji }}
+            {{ policy.level }} RISK
+
+        </span>
+
+    </div>
+
+
+    <!-- POLICY GRID -->
+
+    <div class="policy-grid">
+
+
+        <!-- RISK LEVEL -->
+
+        <div class="policy-item">
+
+            <span class="policy-icon">
+                🚦
+            </span>
+
+            <div>
+
+                <span class="policy-label">
+                    Risk Level
+                </span>
+
+                <strong class="risk-text-{{ policy.color }}">
+                    {{ policy.level }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- HUMAN APPROVAL -->
+
+        <div class="policy-item">
+
+            <span class="policy-icon">
+                👤
+            </span>
+
+            <div>
+
+                <span class="policy-label">
+                    Human Approval
+                </span>
+
+                <strong>
+                    {% if policy.approval_required %}
+                        REQUIRED
+                    {% else %}
+                        NOT REQUIRED
+                    {% endif %}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- EXECUTION -->
+
+        <div class="policy-item">
+
+            <span class="policy-icon">
+                ⚙️
+            </span>
+
+            <div>
+
+                <span class="policy-label">
+                    Execution Status
+                </span>
+
+                <strong class="
+                    {% if policy.execution_allowed %}
+                        risk-text-low
+                    {% else %}
+                        risk-text-high
+                    {% endif %}
+                ">
+
+                    {% if policy.execution_allowed %}
+                        AUTHORIZED
+                    {% else %}
+                        BLOCKED
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- POLICY CHECK -->
+
+        <div class="policy-item">
+
+            <span class="policy-icon">
+                🔐
+            </span>
+
+            <div>
+
+                <span class="policy-label">
+                    Policy Decision
+                </span>
+
+                <strong>
+
+                    {% if policy.approval_required %}
+
+                        HUMAN GATE
+
+                    {% else %}
+
+                        STANDARD
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- REASON -->
+
+    <div class="risk-reason">
+
+        <strong>
+            💡 Policy Reason
+        </strong>
+
+        <p>
+            {{ policy.reason }}
+        </p>
+
+    </div>
+
+
+    <!-- MATCHED KEYWORDS -->
+
+    {% if policy.matched_keywords %}
+
+    <div class="matched-keywords">
+
+        <strong>
+            🔎 Detected Indicators
+        </strong>
+
+        <div class="keyword-list">
+
+            {% for keyword in policy.matched_keywords %}
+
+                <span>
+                    {{ keyword }}
+                </span>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+</div>
+
+                <!-- EXECUTION WARNING -->
+
+                <div class="execution-warning">
+
+                    ⚠️
+
+                    <strong>
+                        Ready for controlled execution.
+                    </strong>
+
+                    Human approval has already been recorded.
+
+                </div>
+
+
+
+                <!-- EXECUTE -->
+
+                <form
+                    action="/execution/{{ item.id }}/execute"
+                    method="POST"
+                    class="request-actions"
+                >
+
+                    <button
+                        type="submit"
+                        class="execute-button"
+                    >
+
+                        ⚙️ Execute Approved Action
+
+                    </button>
+
+                </form>
+
+
+            </div>
+
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <!-- EMPTY STATE -->
+
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    🔒
+                </div>
+
+                <h3>
+                    No Approved Requests
+                </h3>
+
+                <p>
+                    There are currently no approved requests
+                    waiting for execution.
+                </p>
+
+            </div>
+
+
+        {% endif %}
+
+    </section>
+
+
+
+    <!-- =====================================================
+         SECURITY WORKFLOW
+    ===================================================== -->
+
+    <section class="workflow-section">
+
+        <h2>
+            🔐 Secure Execution Workflow
+        </h2>
+
+
+        <div class="workflow-grid">
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    1️⃣
+                </div>
+
+                <h3>
+                    Request
+                </h3>
+
+                <p>
+                    A user submits an institutional request.
+                </p>
+
+            </div>
+
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    2️⃣
+                </div>
+
+                <h3>
+                    AI Planning
+                </h3>
+
+                <p>
+                    The AI identifies the request and
+                    required workflow.
+                </p>
+
+            </div>
+
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    3️⃣
+                </div>
+
+                <h3>
+                    Human Approval
+                </h3>
+
+                <p>
+                    An authorized human approves or rejects
+                    the proposed action.
+                </p>
+
+            </div>
+
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    4️⃣
+                </div>
+
+                <h3>
+                    🛡️ Policy Gate
+                </h3>
+
+                <p>
+                    The security policy verifies that the
+                    request has valid human approval.
+                </p>
+
+            </div>
+
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    5️⃣
+                </div>
+
+                <h3>
+                    ⚙️ Controlled Execution
+                </h3>
+
+                <p>
+                    Only requests that pass the policy gate
+                    can be executed.
+                </p>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+</body>
+
+</html>

@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Dashboard | Human-in-the-Loop Agentic AI
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+
+    <style>
+
+        /* =====================================================
+           DASHBOARD
+        ===================================================== */
+
+        .dashboard-hero {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-hero::after {
+            content: "🤖";
+            position: absolute;
+            right: 45px;
+            bottom: 20px;
+            font-size: 100px;
+            opacity: 0.07;
+        }
+
+
+        /* =====================================================
+           SECTION TITLE
+        ===================================================== */
+
+        .section-title {
+            color: #172554;
+            font-size: 26px;
+            margin: 35px 0 20px;
+        }
+
+
+        /* =====================================================
+           SECURITY STATUS
+        ===================================================== */
+
+        .security-banner {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #eff6ff,
+                    #eef2ff
+                );
+
+            border: 1px solid #dbeafe;
+
+            border-left: 5px solid #2563eb;
+
+            border-radius: 18px;
+
+            padding: 25px 30px;
+
+            margin-bottom: 35px;
+
+            box-shadow:
+                0 8px 25px rgba(37, 99, 235, 0.07);
+        }
+
+        .security-banner h2 {
+            color: #172554;
+            margin-bottom: 8px;
+        }
+
+        .security-banner p {
+            color: #475569;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .security-status {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            margin-top: 15px;
+
+            background: #dcfce7;
+
+            color: #166534;
+
+            padding: 8px 14px;
+
+            border-radius: 999px;
+
+            font-size: 13px;
+
+            font-weight: bold;
+        }
+
+
+        /* =====================================================
+           STATISTICS
+        ===================================================== */
+
+        .stats-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(5, 1fr);
+
+            gap: 18px;
+        }
+
+
+        .stat-card {
+
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 25px;
+
+            border: 1px solid #e2e8f0;
+
+            box-shadow:
+                0 8px 25px rgba(15, 23, 42, 0.06);
+
+            transition:
+                transform 0.25s ease,
+                box-shadow 0.25s ease;
+        }
+
+
+        .stat-card:hover {
+
+            transform: translateY(-5px);
+
+            box-shadow:
+                0 15px 35px rgba(15, 23, 42, 0.10);
+        }
+
+
+        .stat-icon {
+
+            font-size: 30px;
+
+            margin-bottom: 12px;
+        }
+
+
+        .stat-number {
+
+            font-size: 34px;
+
+            font-weight: 800;
+
+            color: #172554;
+        }
+
+
+        .stat-label {
+
+            color: #64748b;
+
+            font-size: 14px;
+
+            margin-top: 5px;
+        }
+
+
+        .pending-card {
+            border-top: 4px solid #f59e0b;
+        }
+
+        .approved-card {
+            border-top: 4px solid #16a34a;
+        }
+
+        .rejected-card {
+            border-top: 4px solid #dc2626;
+        }
+
+        .executed-card {
+            border-top: 4px solid #2563eb;
+        }
+
+
+        /* =====================================================
+           ANALYTICS GRID
+        ===================================================== */
+
+        .analytics-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap: 25px;
+
+            margin-top: 25px;
+        }
+
+
+        .analytics-card {
+
+            background: white;
+
+            border-radius: 20px;
+
+            padding: 28px;
+
+            border: 1px solid #e2e8f0;
+
+            box-shadow:
+                0 8px 25px rgba(15, 23, 42, 0.06);
+        }
+
+
+        .analytics-card h3 {
+
+            color: #172554;
+
+            margin-top: 0;
+
+            margin-bottom: 22px;
+        }
+
+
+        /* =====================================================
+           STATUS BARS
+        ===================================================== */
+
+        .status-row {
+
+            margin-bottom: 18px;
+        }
+
+
+        .status-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            margin-bottom: 7px;
+
+            font-size: 14px;
+
+            font-weight: 600;
+        }
+
+
+        .status-name {
+
+            color: #334155;
+        }
+
+
+        .status-value {
+
+            color: #64748b;
+        }
+
+
+        .progress {
+
+            height: 10px;
+
+            background: #e2e8f0;
+
+            border-radius: 20px;
+
+            overflow: hidden;
+        }
+
+
+        .progress-bar {
+
+            height: 100%;
+
+            border-radius: 20px;
+
+            transition: width 0.7s ease;
+        }
+
+
+        .progress-pending {
+            background: #f59e0b;
+        }
+
+        .progress-approved {
+            background: #16a34a;
+        }
+
+        .progress-rejected {
+            background: #dc2626;
+        }
+
+        .progress-executed {
+            background: #2563eb;
+        }
+
+
+        /* =====================================================
+           SERVICE DISTRIBUTION
+        ===================================================== */
+
+        .service-row {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 14px 0;
+
+            border-bottom: 1px solid #eef2f7;
+        }
+
+
+        .service-row:last-child {
+            border-bottom: none;
+        }
+
+
+        .service-info {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+        }
+
+
+        .service-icon {
+
+            width: 40px;
+
+            height: 40px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background: #eff6ff;
+
+            border-radius: 10px;
+
+            font-size: 20px;
+        }
+
+
+        .service-info strong {
+
+            color: #172554;
+        }
+
+
+        .service-info small {
+
+            display: block;
+
+            color: #64748b;
+
+            margin-top: 3px;
+        }
+
+
+        .service-count {
+
+            font-weight: 800;
+
+            color: #2563eb;
+
+            font-size: 18px;
+        }
+
+
+        /* =====================================================
+           RECENT REQUESTS
+        ===================================================== */
+
+        .recent-card {
+
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(15, 23, 36, 0.9),
+                    rgba(9, 15, 24, 0.9)
+                );
+
+            border-radius: 24px;
+
+            padding: 32px;
+
+            margin-top: 28px;
+
+            border: 1px solid rgba(148, 163, 184, 0.18);
+
+            box-shadow:
+                0 18px 46px rgba(4, 8, 18, 0.22);
+        }
+
+
+        .recent-card h2 {
+
+            color: #ffffff;
+
+            margin-top: 0;
+
+            margin-bottom: 24px;
+
+            font-size: 1.6rem;
+        }
+
+
+        .recent-requests-container {
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-bottom: 20px;
+        }
+
+        .recent-requests-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .recent-requests-container::-webkit-scrollbar-track {
+            background: rgba(125, 211, 252, 0.08);
+            border-radius: 10px;
+        }
+
+        .recent-requests-container::-webkit-scrollbar-thumb {
+            background: rgba(125, 211, 252, 0.25);
+            border-radius: 10px;
+        }
+
+        .recent-requests-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(125, 211, 252, 0.4);
+        }
+
+
+        .recent-request {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 20px;
+
+            padding: 20px;
+
+            margin-bottom: 14px;
+
+            border-radius: 18px;
+
+            background: rgba(7, 12, 20, 0.5);
+
+            border: 1px solid rgba(125, 211, 252, 0.08);
+
+            transition:
+                background 0.2s ease,
+                border-color 0.2s ease;
+        }
+
+
+        .recent-request:last-child {
+            margin-bottom: 0;
+        }
+
+
+        .recent-request:hover {
+            background: rgba(13, 24, 39, 0.7);
+            border-color: rgba(125, 211, 252, 0.16);
+        }
+
+
+        .recent-request strong {
+
+            color: #ffffff;
+
+            font-size: 1.05rem;
+        }
+
+
+        .recent-request p {
+
+            color: #9ab0c8;
+
+            margin: 7px 0 0;
+
+            max-width: 700px;
+
+            line-height: 1.6;
+
+            font-size: 0.95rem;
+        }
+
+
+        .status-badge {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            padding: 8px 14px;
+
+            border-radius: 999px;
+
+            font-size: 0.82rem;
+
+            font-weight: 800;
+
+            white-space: nowrap;
+
+            letter-spacing: 0.02em;
+        }
+
+
+        .status-badge[text*="Pending"],
+        .status-badge[text*="pending"] {
+            background: rgba(251, 191, 36, 0.14);
+            color: #fcd34d;
+        }
+
+        .status-badge[text*="Approved"],
+        .status-badge[text*="approved"] {
+            background: rgba(34, 197, 94, 0.12);
+            color: #7ef0b2;
+        }
+
+        .status-badge[text*="Rejected"],
+        .status-badge[text*="rejected"] {
+            background: rgba(248, 113, 113, 0.12);
+            color: #fca5a5;
+        }
+
+        .status-badge[text*="Executed"],
+        .status-badge[text*="executed"] {
+            background: rgba(125, 211, 252, 0.12);
+            color: #bae6fd;
+        }
+
+        .view-all-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-2));
+            color: #04101a;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            font-size: 0.95rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 12px 28px rgba(125, 211, 252, 0.25);
+        }
+
+        .view-all-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 30px rgba(125, 211, 252, 0.33);
+        }
+
+
+        /* =====================================================
+           QUICK ACTIONS
+        ===================================================== */
+
+        .quick-actions {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+
+            gap: 18px;
+
+            margin-top: 22px;
+        }
+
+
+        .quick-action-card {
+
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-end;
+            min-height: 170px;
+            padding: 22px 20px 18px;
+            border-radius: 20px;
+            text-decoration: none;
+            color: var(--text-strong);
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(13, 24, 39, 0.96),
+                    rgba(17, 28, 45, 0.88)
+                );
+            border: 1px solid rgba(125, 211, 252, 0.16);
+            box-shadow:
+                0 14px 32px rgba(4, 10, 20, 0.2);
+            overflow: hidden;
+            transition:
+                transform 0.25s ease,
+                box-shadow 0.25s ease,
+                border-color 0.25s ease;
+        }
+
+        .quick-action-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-2));
+        }
+
+        .quick-action-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(125, 211, 252, 0.36);
+            box-shadow:
+                0 18px 40px rgba(28, 78, 191, 0.16);
+        }
+
+        .quick-action-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.14), rgba(139, 92, 246, 0.14));
+            font-size: 1.8rem;
+            box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.08);
+        }
+
+        .quick-action-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            line-height: 1.4;
+            color: var(--text-strong);
+        }
+
+
+        /* =====================================================
+           EMPTY STATE
+        ===================================================== */
+
+        .empty-state {
+
+            text-align: center;
+
+            padding: 30px;
+
+            color: #64748b;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 1100px) {
+
+            .stats-grid {
+
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+        }
+
+
+        @media (max-width: 850px) {
+
+            .analytics-grid {
+
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+            .stats-grid {
+
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .recent-request {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+            }
+
+            .dashboard-hero::after {
+
+                display: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     NAVBAR
+===================================================== -->
+
+<header class="navbar">
+
+    <div class="logo">
+        🤖 Human-in-the-Loop AI
+    </div>
+
+
+    <nav>
+
+        <a href="/">
+            Dashboard
+        </a>
+
+        {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+
+            <a href="/approval">
+                Approval Center
+            </a>
+
+            <a href="/audit">
+                Audit Trail
+            </a>
+
+        {% endif %}
+
+        <a href="/requests">
+            Request Tracking
+        </a>
+
+        {% if session.get("user_id") %}
+            <a href="/logout">
+                Logout
+            </a>
+        {% else %}
+            <a href="/login">
+                Login
+            </a>
+        {% endif %}
+
+    </nav>
+
+
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="ai-chat-button" onclick="openAIChat()">💬 AI Agent</button>
+    </div>
+
+</header>
+
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="container">
+
+
+    <!-- =====================================================
+         HERO
+    ===================================================== -->
+
+    <section class="hero dashboard-hero">
+
+        <h1>
+            🤖 Human-in-the-Loop Agentic AI
+        </h1>
+
+        <p>
+            Autonomous institutional service delivery with
+            secure human oversight, auditable workflows,
+            and policy-aware decision support.
+        </p>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         SECURITY
+    ===================================================== -->
+
+    <section class="security-banner">
+
+        <h2>
+            🛡️ Human Oversight for Institutional Decisions
+        </h2>
+
+        <p>
+            This platform understands service requests, plans multi-step actions,
+            retrieves verified institutional information, and routes approvals
+            before any consequential action is executed. Human reviewers remain
+            in control of policy-critical outcomes.
+        </p>
+
+        <div class="security-status">
+
+            🟢
+
+            Policy-Aware Execution Active
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         STATISTICS
+    ===================================================== -->
+
+    <section>
+
+        <h2 class="section-title">
+            📊 Platform Overview
+        </h2>
+
+
+        <div class="stats-grid">
+
+
+            <!-- TOTAL -->
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    📋
+                </div>
+
+                <div class="stat-number">
+                    {{ total_requests }}
+                </div>
+
+                <div class="stat-label">
+                    Total Requests
+                </div>
+
+            </div>
+
+
+
+            <!-- PENDING -->
+
+            <div class="stat-card pending-card">
+
+                <div class="stat-icon">
+                    🟡
+                </div>
+
+                <div class="stat-number">
+                    {{ pending_requests }}
+                </div>
+
+                <div class="stat-label">
+                    Pending Approval
+                </div>
+
+            </div>
+
+
+
+            <!-- APPROVED -->
+
+            <div class="stat-card approved-card">
+
+                <div class="stat-icon">
+                    🟢
+                </div>
+
+                <div class="stat-number">
+                    {{ approved_requests }}
+                </div>
+
+                <div class="stat-label">
+                    Approved
+                </div>
+
+            </div>
+
+
+
+            <!-- REJECTED -->
+
+            <div class="stat-card rejected-card">
+
+                <div class="stat-icon">
+                    🔴
+                </div>
+
+                <div class="stat-number">
+                    {{ rejected_requests }}
+                </div>
+
+                <div class="stat-label">
+                    Rejected
+                </div>
+
+            </div>
+
+
+
+            <!-- EXECUTED -->
+
+            <div class="stat-card executed-card">
+
+                <div class="stat-icon">
+                    🔵
+                </div>
+
+                <div class="stat-number">
+                    {{ executed_requests }}
+                </div>
+
+                <div class="stat-label">
+                    Executed
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         ANALYTICS
+    ===================================================== -->
+
+    <section>
+
+        <h2 class="section-title">
+            📈 Request Analytics
+        </h2>
+
+
+        <div class="analytics-grid">
+
+
+            <!-- STATUS ANALYTICS -->
+
+            <div class="analytics-card">
+
+                <h3>
+                    📊 Request Status
+                </h3>
+
+
+                {% set total = total_requests if total_requests > 0 else 1 %}
+
+
+                <div class="status-row">
+
+                    <div class="status-header">
+
+                        <span class="status-name">
+                            🟡 Pending
+                        </span>
+
+                        <span class="status-value">
+                            {{ pending_requests }}
+                        </span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            class="progress-bar progress-pending"
+                            style="
+                                width:
+                                {{ (pending_requests / total * 100)|round(0) }}%;
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="status-row">
+
+                    <div class="status-header">
+
+                        <span class="status-name">
+                            🟢 Approved
+                        </span>
+
+                        <span class="status-value">
+                            {{ approved_requests }}
+                        </span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            class="progress-bar progress-approved"
+                            style="
+                                width:
+                                {{ (approved_requests / total * 100)|round(0) }}%;
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="status-row">
+
+                    <div class="status-header">
+
+                        <span class="status-name">
+                            🔴 Rejected
+                        </span>
+
+                        <span class="status-value">
+                            {{ rejected_requests }}
+                        </span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            class="progress-bar progress-rejected"
+                            style="
+                                width:
+                                {{ (rejected_requests / total * 100)|round(0) }}%;
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="status-row">
+
+                    <div class="status-header">
+
+                        <span class="status-name">
+                            🔵 Executed
+                        </span>
+
+                        <span class="status-value">
+                            {{ executed_requests }}
+                        </span>
+
+                    </div>
+
+                    <div class="progress">
+
+                        <div
+                            class="progress-bar progress-executed"
+                            style="
+                                width:
+                                {{ (executed_requests / total * 100)|round(0) }}%;
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- SERVICE ANALYTICS -->
+
+            <div class="analytics-card">
+
+                <h3>
+                    🧩 Service Distribution
+                </h3>
+
+
+                <div class="service-row">
+
+                    <div class="service-info">
+
+                        <div class="service-icon">
+                            📜
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Certificates
+                            </strong>
+
+                            <small>
+                                Certificate requests
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="service-count">
+                        {{ certificate_requests }}
+                    </div>
+
+                </div>
+
+
+
+                <div class="service-row">
+
+                    <div class="service-info">
+
+                        <div class="service-icon">
+                            🔧
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Maintenance
+                            </strong>
+
+                            <small>
+                                Maintenance tickets
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="service-count">
+                        {{ maintenance_requests }}
+                    </div>
+
+                </div>
+
+
+
+                <div class="service-row">
+
+                    <div class="service-info">
+
+                        <div class="service-icon">
+                            🧪
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Laboratory
+                            </strong>
+
+                            <small>
+                                Laboratory bookings
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="service-count">
+                        {{ laboratory_requests }}
+                    </div>
+
+                </div>
+
+
+
+                <div class="service-row">
+
+                    <div class="service-info">
+
+                        <div class="service-icon">
+                            📝
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Grievances
+                            </strong>
+
+                            <small>
+                                Grievance submissions
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="service-count">
+                        {{ grievance_requests }}
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =====================================================
+         RECENT ACTIVITY
+    ===================================================== -->
+
+    <section class="recent-card">
+
+        <h2>
+            🕒 Recent Activity
+        </h2>
+
+
+        {% if recent_requests %}
+
+            <div class="recent-requests-container">
+
+                {% for item in recent_requests %}
+
+                    <div class="recent-request">
+
+                        <div>
+
+                            <strong>
+
+                                📄 Request #{{ item.id }}
+
+                            </strong>
+
+
+                            <p>
+
+                                {{ item.request_text }}
+
+                            </p>
+
+                        </div>
+
+
+                        <span class="status-badge">
+
+                            {{ item.status }}
+
+                        </span>
+
+                    </div>
+
+
+                {% endfor %}
+
+            </div>
+
+            <a href="/requests" class="view-all-button">
+                📋 View All Requests
+            </a>
+
+
+        {% else %}
+
+            <div class="empty-state">
+
+                No requests have been submitted yet.
+
+            </div>
+
+        {% endif %}
+
+
+    </section>
+
+
+
+    <!-- =====================================================
+         SERVICES
+    ===================================================== -->
+
+    <section class="info-card">
+
+        <h2>
+            ⚡ Institutional Services
+        </h2>
+
+
+        <div class="quick-actions">
+
+
+            <a href="/certificate" class="quick-action-card">
+                <span class="quick-action-icon">📄</span>
+                <span class="quick-action-title">Certificate Request</span>
+            </a>
+
+
+            <a href="/maintenance" class="quick-action-card">
+                <span class="quick-action-icon">🔧</span>
+                <span class="quick-action-title">Maintenance Ticket</span>
+            </a>
+
+
+            <a href="/laboratory" class="quick-action-card">
+                <span class="quick-action-icon">🧪</span>
+                <span class="quick-action-title">Laboratory Booking</span>
+            </a>
+
+
+            <a href="/grievance" class="quick-action-card">
+                <span class="quick-action-icon">⚠️</span>
+                <span class="quick-action-title">Grievance</span>
+            </a>
+
+
+            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+
+                <a href="/approval" class="quick-action-card">
+                    <span class="quick-action-icon">🔐</span>
+                    <span class="quick-action-title">Approval Center</span>
+                </a>
+
+            {% endif %}
+
+
+            <a href="/requests" class="quick-action-card">
+                <span class="quick-action-icon">📋</span>
+                <span class="quick-action-title">Track Requests</span>
+            </a>
+
+
+            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+
+                <a href="/audit" class="quick-action-card">
+                    <span class="quick-action-icon">📜</span>
+                    <span class="quick-action-title">Audit Trail</span>
+                </a>
+
+            {% endif %}
+
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<!-- =====================================================
+     AI CHAT MODAL
+===================================================== -->
+
+<div id="ai-chat-modal">
+    <div class="ai-chat-container">
+        <div class="ai-chat-header">
+            <h2>🤖 AI Assistant</h2>
+            <button class="ai-close-btn" onclick="closeAIChat()">✕</button>
+        </div>
+        <div id="ai-chat-box">
+            <div class="ai-message bot-message">
+                <div class="ai-message-content">
+                    Hello! I'm your AI assistant. I can help you with institutional service requests, answer questions about our processes, and guide you through the system. How can I help you today?
+                </div>
+            </div>
+        </div>
+        <div class="ai-chat-footer">
+            <input 
+                type="text" 
+                id="ai-input" 
+                placeholder="Ask me anything..."
+            >
+            <button class="ai-send-btn" onclick="sendAIMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+
+</body>
+
+</html>

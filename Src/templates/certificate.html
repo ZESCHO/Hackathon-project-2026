@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Certificate Request | Human-in-the-Loop Agentic AI</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+
+        <div class="logo">
+            🤖 Human-in-the-Loop AI
+        </div>
+
+        <nav>
+            <a href="/">Dashboard</a>
+            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+                <a href="/audit">Audit Trail</a>
+            {% endif %}
+        </nav>
+
+    </header>
+
+
+    <!-- MAIN -->
+    <main class="container">
+
+        <section class="hero">
+
+            <h1>📄 Certificate Request</h1>
+
+            <p>
+                Request an official institutional certificate.
+            </p>
+
+        </section>
+
+
+        <!-- REQUEST FORM -->
+        <section class="form-card">
+
+            <h2>Request a Certificate</h2>
+
+            <p>
+                Fill in the details below to submit your request.
+            </p>
+
+
+            <form
+                action="/certificate/request"
+                method="POST"
+                class="service-form"
+            >
+
+                <!-- NAME -->
+                <label for="student_name">
+                    Student Name
+                </label>
+
+                <input
+                    type="text"
+                    id="student_name"
+                    name="student_name"
+                    placeholder="Enter your full name"
+                    required
+                >
+
+
+                <!-- STUDENT ID -->
+                <label for="student_id">
+                    Student ID
+                </label>
+
+                <input
+                    type="text"
+                    id="student_id"
+                    name="student_id"
+                    placeholder="Enter your student ID"
+                    required
+                >
+
+
+                <!-- CERTIFICATE TYPE -->
+                <label for="certificate_type">
+                    Certificate Type
+                </label>
+
+                <select
+                    id="certificate_type"
+                    name="certificate_type"
+                    required
+                >
+
+                    <option value="">
+                        Select certificate
+                    </option>
+
+                    <option value="Bonafide Certificate">
+                        Bonafide Certificate
+                    </option>
+
+                    <option value="Character Certificate">
+                        Character Certificate
+                    </option>
+
+                    <option value="Course Completion Certificate">
+                        Course Completion Certificate
+                    </option>
+
+                    <option value="Study Certificate">
+                        Study Certificate
+                    </option>
+
+                    <option value="Other">
+                        Other
+                    </option>
+
+                </select>
+
+
+                <!-- PURPOSE -->
+                <label for="purpose">
+                    Purpose
+                </label>
+
+                <textarea
+                    id="purpose"
+                    name="purpose"
+                    rows="5"
+                    placeholder="Explain why you need this certificate..."
+                    required
+                ></textarea>
+
+
+                <!-- SUBMIT -->
+                <button
+                    type="submit"
+                    class="ai-button"
+                >
+                    📤 Submit Request
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- INFORMATION -->
+        <section class="info-card">
+
+            <h2>🔐 What happens next?</h2>
+
+            <div class="steps">
+
+                <div>
+                    <strong>1️⃣ Request Submitted</strong>
+                    <p>
+                        Your certificate request is recorded.
+                    </p>
+                </div>
+
+                <div>
+                    <strong>2️⃣ Human Approval</strong>
+                    <p>
+                        An authorized institutional person
+                        reviews the request.
+                    </p>
+                </div>
+
+                <div>
+                    <strong>3️⃣ Processing</strong>
+                    <p>
+                        The certificate is prepared after approval.
+                    </p>
+                </div>
+
+                <div>
+                    <strong>4️⃣ Completion</strong>
+                    <p>
+                        You can track the request status.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Login | Human-in-the-Loop Agentic AI</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+
+    <style>
+
+        .auth-container {
+            min-height: calc(100vh - 76px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+
+            box-shadow:
+                0 20px 50px rgba(15, 23, 42, 0.12);
+
+            border: 1px solid #e2e8f0;
+        }
+
+        .auth-icon {
+            text-align: center;
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+
+        .auth-card h1 {
+            text-align: center;
+            color: #172554;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            color: #334155;
+            margin-bottom: 7px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 13px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #2563eb;
+            box-shadow:
+                0 0 0 4px rgba(37, 99, 235, 0.08);
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #64748b;
+        }
+
+        .auth-footer a {
+            color: #2563eb;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .flash-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<header class="navbar">
+
+    <div class="logo">
+        🤖 Human-in-the-Loop AI
+    </div>
+
+    <nav>
+
+        <a href="/">
+            Dashboard
+        </a>
+
+        <a href="/register">
+            Register
+        </a>
+
+    </nav>
+
+
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="ai-chat-button" onclick="openAIChat()">💬 AI Agent</button>
+    </div>
+
+</header>
+
+
+<main class="auth-container">
+
+    <section class="auth-card">
+
+        <div class="auth-icon">
+            🔑
+        </div>
+
+        <h1>
+            Welcome Back
+        </h1>
+
+        <p class="auth-subtitle">
+            Login to access your secure dashboard.
+        </p>
+
+
+        {% with messages = get_flashed_messages() %}
+
+            {% if messages %}
+
+                {% for message in messages %}
+
+                    <div class="flash-message">
+                        {{ message }}
+                    </div>
+
+                {% endfor %}
+
+            {% endif %}
+
+        {% endwith %}
+
+
+        <form
+            action="/login"
+            method="POST"
+        >
+
+            <div class="form-group">
+
+                <label for="email">
+                    Email
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="auth-button"
+            >
+                🔐 Login
+            </button>
+
+        </form>
+
+
+        <div class="auth-footer">
+
+            Don't have an account?
+
+            <a href="/register">
+                Create one
+            </a>
+
+        </div>
+
+    </section>
+
+</main>
+
+</body>
+</html>

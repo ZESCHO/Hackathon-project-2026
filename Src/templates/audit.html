@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Audit Trail | Secure Agentic AI</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- NAVBAR -->
+
+    <header class="navbar">
+
+        <div class="logo">
+            🤖 Secure Agentic-AI Platform
+        </div>
+
+
+        <nav>
+
+            <a href="/">
+                Dashboard
+            </a>
+
+            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+
+                <a href="/approval">
+                    Approval Center
+                </a>
+
+                <a href="/audit">
+                    Audit Trail
+                </a>
+
+            {% endif %}
+
+            <a href="/requests">
+                Request Tracking
+            </a>
+
+            {% if session.get("user_id") %}
+                <a href="/logout">
+                    Logout
+                </a>
+            {% else %}
+                <a href="/login">
+                    Login
+                </a>
+            {% endif %}
+
+        </nav>
+
+    </header>
+
+
+
+    <!-- MAIN -->
+
+    <main class="container">
+
+
+        <!-- HERO -->
+
+        <section class="hero">
+
+            <h1>
+                📋 Audit Trail
+            </h1>
+
+            <p>
+                View a transparent record of actions
+                performed within the platform.
+            </p>
+
+        </section>
+
+
+
+        <!-- SECURITY SUMMARY -->
+
+        <section class="info-card">
+
+            <h2>
+                🔐 Security & Accountability
+            </h2>
+
+            <p>
+                Every important workflow action is recorded
+                so that authorized personnel can review
+                what happened, when it happened and what
+                decision was made.
+            </p>
+
+        </section>
+
+
+
+        <!-- AUDIT RECORDS -->
+
+        <section class="form-card">
+
+            <h2>
+                Recent Activity
+            </h2>
+
+
+            {% if records %}
+
+                <div class="audit-list">
+
+                    {% for record in records %}
+
+                        <div class="audit-item">
+
+                            <div>
+
+                                <strong>
+                                    {{ record.action }}
+                                </strong>
+
+                                <p>
+                                    {{ record.description }}
+                                </p>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    {{ record.status }}
+                                </span>
+
+                                <small>
+                                    {{ record.timestamp }}
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+                        📭
+                    </div>
+
+                    <h3>
+                        No audit records yet
+                    </h3>
+
+                    <p>
+                        Actions performed through the platform
+                        will appear here.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </section>
+
+
+
+        <!-- AUDIT PRINCIPLES -->
+
+        <section class="info-card">
+
+            <h2>
+                🛡️ Audit Principles
+            </h2>
+
+
+            <div class="steps">
+
+
+                <div>
+
+                    <strong>
+                        👁️ Transparency
+                    </strong>
+
+                    <p>
+                        Important system actions can be
+                        reviewed by authorized users.
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <strong>
+                        🔒 Accountability
+                    </strong>
+
+                    <p>
+                        Actions are associated with their
+                        request and status.
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <strong>
+                        ⚠️ Human Oversight
+                    </strong>
+
+                    <p>
+                        Consequential actions require
+                        appropriate human approval.
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <strong>
+                        🤖 Uncertainty Detection
+                    </strong>
+
+                    <p>
+                        The system should avoid pretending
+                        to know information it cannot verify.
+                    </p>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+</body>
+
+</html>

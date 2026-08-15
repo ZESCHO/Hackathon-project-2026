@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Maintenance | Secure Agentic AI</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+
+        <div class="logo">
+            🤖 Secure Agentic-AI Platform
+        </div>
+
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/certificate">Certificates</a>
+            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+                <a href="/audit">Audit Trail</a>
+            {% endif %}
+        </nav>
+
+    </header>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="container">
+
+        <!-- HERO -->
+        <section class="hero">
+
+            <h1>🔧 Maintenance Ticket</h1>
+
+            <p>
+                Report a maintenance problem and help us
+                get it resolved quickly.
+            </p>
+
+        </section>
+
+
+        <!-- FORM -->
+        <section class="form-card">
+
+            <h2>Report a Problem</h2>
+
+            <p>
+                Provide the details of the issue below.
+            </p>
+
+
+            <form
+                action="/maintenance/request"
+                method="POST"
+                class="service-form"
+            >
+
+                <!-- NAME -->
+                <label for="name">
+                    Name
+                </label>
+
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    placeholder="Enter your name"
+                    required
+                >
+
+
+                <!-- LOCATION -->
+                <label for="location">
+                    Building / Location
+                </label>
+
+                <input
+                    type="text"
+                    id="location"
+                    name="location"
+                    placeholder="Example: CSE Block"
+                    required
+                >
+
+
+                <!-- ROOM -->
+                <label for="room">
+                    Room Number
+                </label>
+
+                <input
+                    type="text"
+                    id="room"
+                    name="room"
+                    placeholder="Example: Room 204"
+                    required
+                >
+
+
+                <!-- CATEGORY -->
+                <label for="category">
+                    Problem Category
+                </label>
+
+                <select
+                    id="category"
+                    name="category"
+                    required
+                >
+
+                    <option value="">
+                        Select a category
+                    </option>
+
+                    <option value="Electrical">
+                        💡 Electrical
+                    </option>
+
+                    <option value="Plumbing">
+                        🚰 Plumbing
+                    </option>
+
+                    <option value="Furniture">
+                        🪑 Furniture
+                    </option>
+
+                    <option value="Computer / IT">
+                        💻 Computer / IT
+                    </option>
+
+                    <option value="Air Conditioning">
+                        ❄️ Air Conditioning
+                    </option>
+
+                    <option value="Cleaning">
+                        🧹 Cleaning
+                    </option>
+
+                    <option value="Other">
+                        🔧 Other
+                    </option>
+
+                </select>
+
+
+                <!-- PRIORITY -->
+                <label for="priority">
+                    Priority
+                </label>
+
+                <select
+                    id="priority"
+                    name="priority"
+                    required
+                >
+
+                    <option value="">
+                        Select priority
+                    </option>
+
+                    <option value="Low">
+                        🟢 Low
+                    </option>
+
+                    <option value="Medium">
+                        🟡 Medium
+                    </option>
+
+                    <option value="High">
+                        🟠 High
+                    </option>
+
+                    <option value="Urgent">
+                        🔴 Urgent
+                    </option>
+
+                </select>
+
+
+                <!-- DESCRIPTION -->
+                <label for="description">
+                    Problem Description
+                </label>
+
+                <textarea
+                    id="description"
+                    name="description"
+                    rows="6"
+                    placeholder="Describe the problem clearly..."
+                    required
+                ></textarea>
+
+
+                <!-- SUBMIT -->
+                <button
+                    type="submit"
+                    class="ai-button"
+                >
+                    🔧 Submit Maintenance Ticket
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- PROCESS -->
+        <section class="info-card">
+
+            <h2>🔐 What happens next?</h2>
+
+            <div class="steps">
+
+                <div>
+                    <strong>1️⃣ Ticket Created</strong>
+
+                    <p>
+                        Your maintenance issue is recorded.
+                    </p>
+                </div>
+
+
+                <div>
+                    <strong>2️⃣ Review</strong>
+
+                    <p>
+                        The request is reviewed by
+                        the appropriate department.
+                    </p>
+                </div>
+
+
+                <div>
+                    <strong>3️⃣ Assignment</strong>
+
+                    <p>
+                        The issue is assigned to
+                        a maintenance team.
+                    </p>
+                </div>
+
+
+                <div>
+                    <strong>4️⃣ Resolution</strong>
+
+                    <p>
+                        The maintenance team works
+                        on resolving the issue.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>

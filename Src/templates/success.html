@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ title }}</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+<body>
+
+    <header class="navbar">
+
+        <div class="logo">
+            🤖 Secure Agentic-AI Platform
+        </div>
+
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/audit">Audit Trail</a>
+        </nav>
+
+    </header>
+
+
+    <main class="container">
+
+        <section class="hero">
+
+            <h1>✅ {{ title }}</h1>
+
+            <p>
+                {{ message }}
+            </p>
+
+        </section>
+
+
+        <section class="info-card">
+
+            <h2>📋 Request Status</h2>
+
+            <p>
+                <strong>Status:</strong>
+                Pending Human Approval
+            </p>
+
+            <p>
+                Your request has been recorded.
+                An authorized person must approve
+                consequential actions before processing.
+            </p>
+
+            <br>
+
+            <a href="/">
+                <button type="button">
+                    ← Back to Dashboard
+                </button>
+            </a>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>

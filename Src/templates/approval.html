@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Approval Center | Human-in-the-Loop Agentic AI
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+    <style>
+
+        /* =====================================================
+           APPROVAL CENTER
+        ===================================================== */
+
+        .approval-hero {
+            text-align: center;
+            padding: 55px 30px;
+            margin-bottom: 30px;
+        }
+
+        .approval-hero h1 {
+            font-size: 42px;
+            margin-bottom: 12px;
+            color: #172554;
+        }
+
+        .approval-hero p {
+            font-size: 18px;
+            color: #64748b;
+        }
+
+
+        /* =====================================================
+           SECURITY BANNER
+        ===================================================== */
+
+        .security-banner {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #eff6ff,
+                    #eef2ff
+                );
+
+            border-left: 5px solid #2563eb;
+
+            padding: 25px;
+
+            border-radius: 15px;
+
+            margin-bottom: 35px;
+        }
+
+        .security-banner h2 {
+
+            margin-top: 0;
+
+            color: #172554;
+        }
+
+        .security-banner p {
+
+            color: #475569;
+
+            line-height: 1.7;
+        }
+
+
+        /* =====================================================
+           REQUEST SECTION
+        ===================================================== */
+
+        .requests-section {
+
+            margin-top: 30px;
+        }
+
+        .requests-title {
+
+            font-size: 28px;
+
+            color: #172554;
+
+            margin-bottom: 20px;
+        }
+
+
+        /* =====================================================
+           REQUEST CARD
+        ===================================================== */
+
+        .request-card {
+
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 28px;
+
+            margin-bottom: 25px;
+
+            border: 1px solid #e2e8f0;
+
+            box-shadow:
+                0 8px 25px rgba(15, 23, 42, 0.07);
+
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        .request-card:hover {
+
+            transform: translateY(-3px);
+
+            box-shadow:
+                0 14px 35px rgba(15, 23, 42, 0.10);
+        }
+
+
+        /* =====================================================
+           REQUEST HEADER
+        ===================================================== */
+
+        .request-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            gap: 20px;
+
+            margin-bottom: 18px;
+        }
+
+        .request-title {
+
+            margin: 0;
+
+            color: #172554;
+
+            font-size: 23px;
+        }
+
+        .request-id {
+
+            margin-top: 6px;
+
+            color: #64748b;
+
+            font-size: 14px;
+        }
+
+
+        /* =====================================================
+           STATUS
+        ===================================================== */
+
+        .status-badge {
+
+            display: inline-block;
+
+            padding: 7px 14px;
+
+            border-radius: 999px;
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            white-space: nowrap;
+        }
+
+        .status-pending {
+
+            background: #fef3c7;
+
+            color: #92400e;
+        }
+
+        .status-approved {
+
+            background: #dcfce7;
+
+            color: #166534;
+        }
+
+        .status-rejected {
+
+            background: #fee2e2;
+
+            color: #991b1b;
+        }
+
+        .status-executed {
+
+            background: #dbeafe;
+
+            color: #1d4ed8;
+        }
+
+
+        /* =====================================================
+           REQUEST DETAILS
+        ===================================================== */
+
+        .request-details {
+
+            background: #f8fafc;
+
+            border-radius: 12px;
+
+            padding: 18px;
+
+            margin: 18px 0;
+        }
+
+        .request-details p {
+
+            margin: 8px 0;
+
+            color: #475569;
+
+            line-height: 1.6;
+        }
+
+        .request-details strong {
+
+            color: #172554;
+        }
+
+
+        /* =====================================================
+           REQUEST DESCRIPTION
+        ===================================================== */
+
+        .request-description {
+
+            margin-top: 18px;
+
+            padding: 18px;
+
+            background: #f1f5f9;
+
+            border-radius: 12px;
+
+            color: #334155;
+
+            line-height: 1.7;
+        }
+
+
+        /* =====================================================
+           AI DECISION PANEL
+        ===================================================== */
+
+        .ai-panel {
+
+            margin-top: 22px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #f8f7ff,
+                    #eef6ff
+                );
+
+            border: 1px solid #dbeafe;
+
+            border-radius: 16px;
+
+            padding: 22px;
+
+            box-shadow:
+                0 6px 20px rgba(37, 99, 235, 0.06);
+        }
+
+
+        .ai-panel-header {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 18px;
+        }
+
+
+        .ai-panel-icon {
+
+            width: 45px;
+
+            height: 45px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border-radius: 12px;
+
+            background: #dbeafe;
+
+            font-size: 24px;
+        }
+
+
+        .ai-panel h3 {
+
+            margin: 0;
+
+            color: #172554;
+
+            font-size: 20px;
+        }
+
+
+        .ai-panel-subtitle {
+
+            margin: 3px 0 0;
+
+            color: #64748b;
+
+            font-size: 13px;
+        }
+
+
+        /* =====================================================
+           AI GRID
+        ===================================================== */
+
+        .ai-analysis-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 14px;
+
+            margin-bottom: 18px;
+        }
+
+
+        .ai-analysis-box {
+
+            background: white;
+
+            border: 1px solid #e2e8f0;
+
+            border-radius: 12px;
+
+            padding: 15px;
+        }
+
+
+        .ai-analysis-box span {
+
+            display: block;
+
+            font-size: 12px;
+
+            color: #64748b;
+
+            margin-bottom: 6px;
+
+            font-weight: 600;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.4px;
+        }
+
+
+        .ai-analysis-box strong {
+
+            color: #172554;
+
+            font-size: 15px;
+        }
+
+
+        /* =====================================================
+           CONFIDENCE BAR
+        ===================================================== */
+
+        .confidence-bar {
+
+            margin-top: 10px;
+
+            height: 8px;
+
+            background: #e2e8f0;
+
+            border-radius: 20px;
+
+            overflow: hidden;
+        }
+
+
+        .confidence-fill {
+
+            height: 100%;
+
+            background: #2563eb;
+
+            border-radius: 20px;
+
+            transition: width 0.5s ease;
+        }
+
+
+        /* =====================================================
+           AI RECOMMENDATION
+        ===================================================== */
+
+        .ai-recommendation {
+
+            background: white;
+
+            border-left: 4px solid #2563eb;
+
+            border-radius: 10px;
+
+            padding: 16px;
+
+            color: #334155;
+
+            line-height: 1.6;
+
+            margin-top: 12px;
+        }
+
+
+        .ai-recommendation strong {
+
+            color: #172554;
+        }
+
+
+        /* =====================================================
+           ACTIONS
+        ===================================================== */
+
+        .approval-actions {
+
+            display: flex;
+
+            gap: 12px;
+
+            margin-top: 22px;
+
+            flex-wrap: wrap;
+        }
+
+
+        .approve-button,
+        .reject-button,
+        .execute-button {
+
+            border: none;
+
+            padding: 12px 22px;
+
+            border-radius: 10px;
+
+            font-size: 15px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition:
+                transform 0.2s ease,
+                opacity 0.2s ease;
+        }
+
+
+        .approve-button {
+
+            background: #16a34a;
+
+            color: white;
+        }
+
+
+        .reject-button {
+
+            background: #dc2626;
+
+            color: white;
+        }
+
+
+        .execute-button {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #4f46e5
+                );
+
+            color: white;
+        }
+
+
+        .approve-button:hover,
+        .reject-button:hover,
+        .execute-button:hover {
+
+            transform: translateY(-2px);
+
+            opacity: 0.9;
+        }
+
+
+        /* =====================================================
+           STATUS MESSAGES
+        ===================================================== */
+
+        .approved-message,
+        .executed-message,
+        .rejected-message {
+
+            margin-top: 18px;
+
+            padding: 14px 16px;
+
+            border-radius: 10px;
+
+            font-size: 14px;
+
+            font-weight: 600;
+        }
+
+
+        .approved-message {
+
+            background: #ecfdf5;
+
+            color: #166534;
+        }
+
+
+        .executed-message {
+
+            background: #eff6ff;
+
+            color: #1d4ed8;
+        }
+
+
+        .rejected-message {
+
+            background: #fef2f2;
+
+            color: #991b1b;
+        }
+
+
+        /* =====================================================
+           EMPTY STATE
+        ===================================================== */
+
+        .empty-state {
+
+            text-align: center;
+
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 50px 25px;
+
+            border: 1px solid #e2e8f0;
+        }
+
+
+        .empty-icon {
+
+            font-size: 55px;
+
+            margin-bottom: 15px;
+        }
+
+
+        .empty-state h3 {
+
+            color: #172554;
+
+            font-size: 24px;
+        }
+
+
+        .empty-state p {
+
+            color: #64748b;
+        }
+
+
+        /* =====================================================
+           WORKFLOW
+        ===================================================== */
+
+        .workflow-section {
+
+            margin-top: 40px;
+
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 30px;
+
+            box-shadow:
+                0 8px 25px rgba(15, 23, 42, 0.06);
+        }
+
+
+        .workflow-section h2 {
+
+            color: #172554;
+
+            margin-top: 0;
+        }
+
+
+        .workflow-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 20px;
+
+            margin-top: 25px;
+        }
+
+
+        .workflow-step {
+
+            background: #f8fafc;
+
+            padding: 22px;
+
+            border-radius: 14px;
+
+            border: 1px solid #e2e8f0;
+        }
+
+
+        .workflow-number {
+
+            font-size: 28px;
+
+            margin-bottom: 10px;
+        }
+
+
+        .workflow-step h3 {
+
+            color: #172554;
+
+            margin-bottom: 8px;
+        }
+
+
+        .workflow-step p {
+
+            color: #64748b;
+
+            line-height: 1.6;
+
+            margin: 0;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 900px) {
+
+            .workflow-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+            .ai-analysis-grid {
+
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+            .approval-hero h1 {
+
+                font-size: 30px;
+            }
+
+            .request-header {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+            }
+
+            .workflow-grid {
+
+                grid-template-columns: 1fr;
+            }
+
+            .approval-actions {
+
+                flex-direction: column;
+            }
+
+            .approve-button,
+            .reject-button,
+            .execute-button {
+
+                width: 100%;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     NAVBAR
+===================================================== -->
+
+<header class="navbar">
+
+    <div class="logo">
+        🤖 Secure Agentic-AI Platform
+    </div>
+
+
+    <nav>
+
+        <a href="/">
+            Dashboard
+        </a>
+
+        {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+
+            <a href="/approval">
+                Approval Center
+            </a>
+
+            <a href="/audit">
+                Audit Trail
+            </a>
+
+        {% endif %}
+
+        <a href="/requests">
+            Request Tracking
+        </a>
+
+        {% if session.get("user_id") %}
+            <a href="/logout">
+                Logout
+            </a>
+        {% else %}
+            <a href="/login">
+                Login
+            </a>
+        {% endif %}
+
+    </nav>
+
+</header>
+
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="container">
+
+
+    <!-- HERO -->
+
+    <section class="hero approval-hero">
+
+        <h1>
+            🔐 Human Approval Center
+        </h1>
+
+        <p>
+            Review and authorize consequential actions
+            before they are executed.
+        </p>
+
+    </section>
+
+
+
+    <!-- SECURITY NOTICE -->
+
+    <section class="security-banner">
+
+        <h2>
+            🛡️ Human Oversight Required
+        </h2>
+
+        <p>
+            The AI system can analyze and recommend actions,
+            but it cannot independently approve or execute
+            consequential institutional actions.
+        </p>
+
+    </section>
+
+
+
+    <!-- REQUESTS -->
+
+    <section class="requests-section">
+
+        <h2 class="requests-title">
+            ⏳ Service Requests
+        </h2>
+
+
+        {% if requests %}
+
+
+            {% for item in requests %}
+
+
+            <div class="request-card">
+
+
+                <!-- =================================================
+                     HEADER
+                ================================================= -->
+
+                <div class="request-header">
+
+                    <div>
+
+                        <h3 class="request-title">
+
+                            {% if item.category and "Certificate" in item.category %}
+
+                                📄
+
+                            {% elif item.category and "Maintenance" in item.category %}
+
+                                🔧
+
+                            {% elif item.category and "Laboratory" in item.category %}
+
+                                🧪
+
+                            {% elif item.category and "Grievance" in item.category %}
+
+                                ⚠️
+
+                            {% else %}
+
+                                📋
+
+                            {% endif %}
+
+                            {{ item.category or "Service Request" }}
+
+                        </h3>
+
+
+                        <div class="request-id">
+
+                            Request #{{ item.id }}
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- STATUS -->
+
+                    {% if item.status == "Approved" %}
+
+                        <span class="status-badge status-approved">
+
+                            🟢 Approved
+
+                        </span>
+
+                    {% elif item.status == "Rejected" %}
+
+                        <span class="status-badge status-rejected">
+
+                            🔴 Rejected
+
+                        </span>
+
+                    {% elif item.status == "Executed" %}
+
+                        <span class="status-badge status-executed">
+
+                            🔵 Executed
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="status-badge status-pending">
+
+                            🟡 {{ item.status or "Pending Approval" }}
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+
+                <!-- =================================================
+                     REQUEST DETAILS
+                ================================================= -->
+
+                <div class="request-details">
+
+                    <p>
+
+                        <strong>
+                            👤 User ID:
+                        </strong>
+
+                        {{ item.user_id }}
+
+                    </p>
+
+
+                    <p>
+
+                        <strong>
+                            🆔 Request ID:
+                        </strong>
+
+                        #{{ item.id }}
+
+                    </p>
+
+
+                    {% if item.created_at %}
+
+                    <p>
+
+                        <strong>
+                            🕐 Submitted:
+                        </strong>
+
+                        {{ item.created_at.strftime(
+                            "%d %b %Y, %I:%M %p"
+                        ) }}
+
+                    </p>
+
+                    {% endif %}
+
+                </div>
+
+
+
+                <!-- =================================================
+                     REQUEST TEXT
+                ================================================= -->
+
+                <div class="request-description">
+
+                    <strong>
+                        📋 Request Details
+                    </strong>
+
+                    <br><br>
+
+                    {{ item.request_text }}
+
+                </div>
+
+
+
+                <!-- =================================================
+                     AI DECISION ANALYSIS
+                ================================================= -->
+
+                <div class="ai-panel">
+
+
+                    <div class="ai-panel-header">
+
+                        <div class="ai-panel-icon">
+                            🤖
+                        </div>
+
+                        <div>
+
+                            <h3>
+                                AI Decision Analysis
+                            </h3>
+
+                            <p class="ai-panel-subtitle">
+                                AI-assisted analysis • Human decision required
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- AI ANALYSIS -->
+
+                    <div class="ai-analysis-grid">
+
+
+                        <!-- INTENT -->
+
+                        <div class="ai-analysis-box">
+
+                            <span>
+                                Detected Intent
+                            </span>
+
+                            <strong>
+
+                                {{ item.intent or "Not Classified" }}
+
+                            </strong>
+
+                        </div>
+
+
+
+                        <!-- CATEGORY -->
+
+                        <div class="ai-analysis-box">
+
+                            <span>
+                                Category
+                            </span>
+
+                            <strong>
+
+                                {{ item.category or "Not Classified" }}
+
+                            </strong>
+
+                        </div>
+
+
+
+                        <!-- RISK -->
+
+                        <div class="ai-analysis-box">
+
+                            <span>
+                                Risk Level
+                            </span>
+
+                            <strong>
+
+                                {% if item.requires_approval %}
+
+                                    🔴 High — Human Review
+
+                                {% else %}
+
+                                    🟢 Low
+
+                                {% endif %}
+
+                            </strong>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- CONFIDENCE -->
+
+                    <div class="ai-analysis-box">
+
+                        <span>
+                            AI Confidence
+                        </span>
+
+
+                        <strong>
+
+                            {% if item.confidence is not none %}
+
+                                {{ "%.0f"|format(
+                                    item.confidence * 100
+                                ) }}%
+
+                            {% else %}
+
+                                Not Available
+
+                            {% endif %}
+
+                        </strong>
+
+
+                        <div class="confidence-bar">
+
+                            <div
+                                class="confidence-fill"
+                                style="
+                                    width:
+                                    {{ (
+                                        item.confidence * 100
+                                    ) if item.confidence is not none else 0 }}%;
+                                "
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- APPROVAL REQUIREMENT -->
+
+                    <div class="ai-recommendation">
+
+                        <strong>
+                            🛡️ Approval Requirement:
+                        </strong>
+
+                        <br>
+
+
+                        {% if item.requires_approval %}
+
+                            Human approval is required before
+                            this request can proceed to execution.
+
+                        {% else %}
+
+                            This request does not currently
+                            require human approval.
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <!-- AI RECOMMENDATION -->
+
+                    <div class="ai-recommendation">
+
+                        <strong>
+                            🧠 AI Recommendation:
+                        </strong>
+
+                        <br>
+
+                        {% if item.requires_approval %}
+
+                            The request has been classified by
+                            the AI system and requires authorized
+                            human review before any consequential
+                            action is performed.
+
+                        {% else %}
+
+                            The request has been analyzed by the
+                            AI system and does not currently require
+                            human approval.
+
+                        {% endif %}
+
+                    </div>
+
+
+
+                    <!-- SAFETY POLICY -->
+
+                    <div class="ai-recommendation">
+
+                        <strong>
+                            🔐 Safety Policy:
+                        </strong>
+
+                        <br>
+
+                        AI analysis is advisory only.
+                        Human authorization is required before
+                        consequential institutional actions can
+                        be executed.
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- =================================================
+                     ACTIONS
+                ================================================= -->
+
+                <div class="approval-actions">
+
+
+                    {% if item.status == "Pending Approval" %}
+
+
+                        <form
+                            action="/approval/{{ item.id }}/approve"
+                            method="POST"
+                        >
+
+                            <button
+                                type="submit"
+                                class="approve-button"
+                            >
+
+                                ✅ Approve Request
+
+                            </button>
+
+                        </form>
+
+
+                        <form
+                            action="/approval/{{ item.id }}/reject"
+                            method="POST"
+                        >
+
+                            <button
+                                type="submit"
+                                class="reject-button"
+                            >
+
+                                ❌ Reject Request
+
+                            </button>
+
+                        </form>
+
+
+                    {% elif item.status == "Approved" %}
+
+
+                        <div class="approved-message">
+
+                            🟢 This request has been approved
+                            by an authorized human reviewer.
+
+                        </div>
+
+
+                        <form
+                        action="/execution/{{ item.id }}/execute"
+                        method="POST"
+                        class="approval-actions"
+>
+
+                           <button
+                           type="submit"
+                             class="execute-button"
+                            >
+
+                            ⚡ Execute Approved Request
+
+                          </button>
+
+                        </form>
+
+
+                    {% elif item.status == "Executed" %}
+
+
+                        <div class="executed-message">
+
+                            🔵 Request successfully executed.
+
+                        </div>
+
+
+                    {% elif item.status == "Rejected" %}
+
+
+                        <div class="rejected-message">
+
+                            🔴 This request was rejected
+                            by the authorized reviewer.
+
+                        </div>
+
+
+                    {% endif %}
+
+
+                </div>
+
+
+            </div>
+
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <!-- =================================================
+                 EMPTY STATE
+            ================================================= -->
+
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    🎉
+                </div>
+
+                <h3>
+                    No Service Requests
+                </h3>
+
+                <p>
+                    There are currently no requests
+                    waiting for human approval.
+                </p>
+
+            </div>
+
+
+        {% endif %}
+
+    </section>
+
+
+
+    <!-- =====================================================
+         WORKFLOW
+    ===================================================== -->
+
+    <section class="workflow-section">
+
+        <h2>
+            🔄 Approval Workflow
+        </h2>
+
+
+        <div class="workflow-grid">
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    1️⃣
+                </div>
+
+                <h3>
+                    Request
+                </h3>
+
+                <p>
+                    A user submits a service request
+                    through the platform.
+                </p>
+
+            </div>
+
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    2️⃣
+                </div>
+
+                <h3>
+                    AI Planning
+                </h3>
+
+                <p>
+                    The AI analyzes the request,
+                    identifies its intent and category,
+                    and determines the required workflow.
+                </p>
+
+            </div>
+
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    3️⃣
+                </div>
+
+                <h3>
+                    Human Approval
+                </h3>
+
+                <p>
+                    An authorized human reviews the
+                    AI analysis and approves or rejects
+                    the request.
+                </p>
+
+            </div>
+
+
+
+            <div class="workflow-step">
+
+                <div class="workflow-number">
+                    4️⃣
+                </div>
+
+                <h3>
+                    Controlled Execution
+                </h3>
+
+                <p>
+                    Only approved requests can proceed
+                    through the controlled execution gate.
+                </p>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+</body>
+
+</html>

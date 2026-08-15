@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Grievance | Secure Agentic AI</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+
+        <div class="logo">
+            🤖 Secure Agentic-AI Platform
+        </div>
+
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/certificate">Certificates</a>
+            <a href="/maintenance">Maintenance</a>
+            <a href="/laboratory">Laboratory</a>
+        </nav>
+
+    </header>
+
+
+    <!-- MAIN -->
+    <main class="container">
+
+        <!-- HERO -->
+        <section class="hero">
+
+            <h1>⚠️ Grievance & Escalation</h1>
+
+            <p>
+                Submit an institutional grievance and track
+                its review and escalation status.
+            </p>
+
+        </section>
+
+
+        <!-- FORM -->
+        <section class="form-card">
+
+            <h2>Submit a Grievance</h2>
+
+            <p>
+                Please provide accurate information so your
+                grievance can be reviewed appropriately.
+            </p>
+
+
+            <form
+                action="/grievance/submit"
+                method="POST"
+                class="service-form"
+            >
+
+                <!-- NAME -->
+                <label for="name">
+                    Name
+                </label>
+
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    placeholder="Enter your name"
+                    required
+                >
+
+
+                <!-- ID -->
+                <label for="user_id">
+                    Student / Employee ID
+                </label>
+
+                <input
+                    type="text"
+                    id="user_id"
+                    name="user_id"
+                    placeholder="Enter your ID"
+                    required
+                >
+
+
+                <!-- CATEGORY -->
+                <label for="category">
+                    Grievance Category
+                </label>
+
+                <select
+                    id="category"
+                    name="category"
+                    required
+                >
+
+                    <option value="">
+                        Select category
+                    </option>
+
+                    <option value="Academic">
+                        📚 Academic
+                    </option>
+
+                    <option value="Administrative">
+                        🏢 Administrative
+                    </option>
+
+                    <option value="Infrastructure">
+                        🏗️ Infrastructure
+                    </option>
+
+                    <option value="Examination">
+                        📝 Examination
+                    </option>
+
+                    <option value="Fees">
+                        💳 Fees
+                    </option>
+
+                    <option value="Hostel">
+                        🏠 Hostel
+                    </option>
+
+                    <option value="Other">
+                        📌 Other
+                    </option>
+
+                </select>
+
+
+                <!-- PRIORITY -->
+                <label for="priority">
+                    Priority
+                </label>
+
+                <select
+                    id="priority"
+                    name="priority"
+                    required
+                >
+
+                    <option value="">
+                        Select priority
+                    </option>
+
+                    <option value="Low">
+                        🟢 Low
+                    </option>
+
+                    <option value="Medium">
+                        🟡 Medium
+                    </option>
+
+                    <option value="High">
+                        🟠 High
+                    </option>
+
+                    <option value="Urgent">
+                        🔴 Urgent
+                    </option>
+
+                </select>
+
+
+                <!-- SUBJECT -->
+                <label for="subject">
+                    Subject
+                </label>
+
+                <input
+                    type="text"
+                    id="subject"
+                    name="subject"
+                    placeholder="Briefly describe your grievance"
+                    required
+                >
+
+
+                <!-- DESCRIPTION -->
+                <label for="description">
+                    Detailed Description
+                </label>
+
+                <textarea
+                    id="description"
+                    name="description"
+                    rows="7"
+                    placeholder="Explain your grievance clearly..."
+                    required
+                ></textarea>
+
+
+                <!-- SUBMIT -->
+                <button
+                    type="submit"
+                    class="ai-button"
+                >
+                    ⚠️ Submit Grievance
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- ESCALATION INFORMATION -->
+        <section class="info-card">
+
+            <h2>🔐 Review & Escalation Process</h2>
+
+            <div class="steps">
+
+                <div>
+                    <strong>1️⃣ Submitted</strong>
+
+                    <p>
+                        Your grievance is securely recorded.
+                    </p>
+                </div>
+
+
+                <div>
+                    <strong>2️⃣ Classified</strong>
+
+                    <p>
+                        The request is categorized according
+                        to institutional policies.
+                    </p>
+                </div>
+
+
+                <div>
+                    <strong>3️⃣ Human Review</strong>
+
+                    <p>
+                        An authorized person reviews the case.
+                    </p>
+                </div>
+
+
+                <div>
+                    <strong>4️⃣ Escalation</strong>
+
+                    <p>
+                        Cases requiring additional authority
+                        can be escalated for further review.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Laboratory Booking | Secure Agentic AI</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+
+        <div class="logo">
+            🤖 Secure Agentic-AI Platform
+        </div>
+
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/certificate">Certificates</a>
+            <a href="/maintenance">Maintenance</a>
+            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+                <a href="/audit">Audit Trail</a>
+            {% endif %}
+        </nav>
+
+    </header>
+
+
+    <!-- MAIN -->
+    <main class="container">
+
+        <!-- HERO -->
+        <section class="hero">
+
+            <h1>🧪 Laboratory Booking</h1>
+
+            <p>
+                Request a laboratory slot for your academic
+                or institutional requirements.
+            </p>
+
+        </section>
+
+
+        <!-- BOOKING FORM -->
+        <section class="form-card">
+
+            <h2>Book a Laboratory</h2>
+
+            <p>
+                Select your laboratory, date and preferred
+                time slot.
+            </p>
+
+
+            <form
+                action="/laboratory/book"
+                method="POST"
+                class="service-form"
+            >
+
+                <!-- NAME -->
+                <label for="name">
+                    Name
+                </label>
+
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    placeholder="Enter your name"
+                    required
+                >
+
+
+                <!-- STUDENT ID -->
+                <label for="student_id">
+                    Student / Employee ID
+                </label>
+
+                <input
+                    type="text"
+                    id="student_id"
+                    name="student_id"
+                    placeholder="Enter your ID"
+                    required
+                >
+
+
+                <!-- LAB -->
+                <label for="laboratory">
+                    Select Laboratory
+                </label>
+
+                <select
+                    id="laboratory"
+                    name="laboratory"
+                    required
+                >
+
+                    <option value="">
+                        Select laboratory
+                    </option>
+
+                    <option value="Computer Science Lab">
+                        💻 Computer Science Lab
+                    </option>
+
+                    <option value="Artificial Intelligence Lab">
+                        🤖 Artificial Intelligence Lab
+                    </option>
+
+                    <option value="Data Science Lab">
+                        📊 Data Science Lab
+                    </option>
+
+                    <option value="Electronics Lab">
+                        ⚡ Electronics Lab
+                    </option>
+
+                    <option value="Physics Lab">
+                        🔬 Physics Lab
+                    </option>
+
+                    <option value="Chemistry Lab">
+                        🧪 Chemistry Lab
+                    </option>
+
+                </select>
+
+
+                <!-- DATE -->
+                <label for="date">
+                    Booking Date
+                </label>
+
+                <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    required
+                >
+
+
+                <!-- TIME -->
+                <label for="time">
+                    Preferred Time Slot
+                </label>
+
+                <select
+                    id="time"
+                    name="time"
+                    required
+                >
+
+                    <option value="">
+                        Select time slot
+                    </option>
+
+                    <option value="09:00 - 10:00">
+                        09:00 AM - 10:00 AM
+                    </option>
+
+                    <option value="10:00 - 11:00">
+                        10:00 AM - 11:00 AM
+                    </option>
+
+                    <option value="11:00 - 12:00">
+                        11:00 AM - 12:00 PM
+                    </option>
+
+                    <option value="12:00 - 01:00">
+                        12:00 PM - 01:00 PM
+                    </option>
+
+                    <option value="02:00 - 03:00">
+                        02:00 PM - 03:00 PM
+                    </option>
+
+                    <option value="03:00 - 04:00">
+                        03:00 PM - 04:00 PM
+                    </option>
+
+                    <option value="04:00 - 05:00">
+                        04:00 PM - 05:00 PM
+                    </option>
+
+                </select>
+
+
+                <!-- PURPOSE -->
+                <label for="purpose">
+                    Purpose of Booking
+                </label>
+
+                <textarea
+                    id="purpose"
+                    name="purpose"
+                    rows="5"
+                    placeholder="Explain why you need the laboratory..."
+                    required
+                ></textarea>
+
+
+                <!-- SUBMIT -->
+                <button
+                    type="submit"
+                    class="ai-button"
+                >
+                    🧪 Request Laboratory Booking
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- BOOKING PROCESS -->
+        <section class="info-card">
+
+            <h2>🔐 Booking Process</h2>
+
+            <div class="steps">
+
+                <div>
+
+                    <strong>1️⃣ Request</strong>
+
+                    <p>
+                        Your laboratory booking request
+                        is recorded.
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <strong>2️⃣ Availability Check</strong>
+
+                    <p>
+                        The requested laboratory and
+                        time slot are checked.
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <strong>3️⃣ Human Approval</strong>
+
+                    <p>
+                        An authorized person reviews
+                        the booking request.
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <strong>4️⃣ Confirmation</strong>
+
+                    <p>
+                        Your booking is confirmed after
+                        approval.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>
