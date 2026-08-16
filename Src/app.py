@@ -32,10 +32,15 @@ app.secret_key = os.environ.get(
 @app.route("/chat", methods=["POST"])
 
 def chat():
+    
     data = request.get_json()
     user_message = data.get("message")
-    reply = ask_model(user_message)
-    return jsonify({"reply": reply})
+    history = session.setdefault("chat_history", [])
+    history.append({"role": "user", "content": user_message})
+    user_request = understand_request(user_message, history)
+    history.append({"role": "bot", "content": user_request["message"]})
+    session["chat_history"] = history
+    return jsonify({"reply": user_request})
 
     
 # =========================================================
