@@ -1435,7 +1435,10 @@
                 body: JSON.stringify({ message: message })
             });
             const data = await response.json();
-            addAIMessage(data.reply, "bot");
+            console.log(data.reply)
+            const { status, message: botMessage, clarification_question } = data.reply;
+            const fullMessage = status === 'needs_clarification' ? `${botMessage} ${clarification_question}` : botMessage;
+            addAIMessage(fullMessage, "bot")
         }
     </script>
 
