@@ -16,7 +16,7 @@ from app.ai_agent import understand_request
 
 from app.models import db, AuditLog,User
 from app.models.request import ServiceRequest
-
+from app.ollama_client import ask_model
 
 # =========================================================
 # FLASK APP
@@ -28,15 +28,6 @@ app.secret_key = os.environ.get(
     "SECRET_KEY",
     "secure-agentic-ai-development-key"
 )
-
-def ask_model(user_message):
-    payload = {
-        "model": "qwen3:8b",
-        "prompt": user_message,
-        "stream": False
-    }
-    response = requests.post("http://localhost:11434/api/generate", json=payload)
-    return response.json()["response"]
 
 @app.route("/chat", methods=["POST"])
 
