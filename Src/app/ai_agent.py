@@ -1,19 +1,6 @@
 import os
 import json
-from openai import OpenAI
-from dotenv import load_dotenv
-
-load_dotenv()
-
-api_key = os.getenv("OPENAI_API_KEY")
-
-if not api_key:
-    raise RuntimeError(
-        "OPENAI_API_KEY is missing. "
-        "Please add it to your .env file."
-    )
-
-client = OpenAI(api_key=api_key)
+from app.ollama_client import ask_model
 
 
 def understand_request(user_request):
@@ -52,13 +39,9 @@ Return exactly this structure:
 """
 
     try:
-        response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=prompt
-        )
 
-        result = response.output_text.strip()
-
+        result = ask_model(prompt)
+        
         # Remove accidental markdown fences
         if result.startswith("```"):
             result = result.replace("```json", "")
