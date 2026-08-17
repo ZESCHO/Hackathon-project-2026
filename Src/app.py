@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 
 from flask import (
@@ -29,20 +29,156 @@ app.secret_key = os.environ.get(
     "secure-agentic-ai-development-key"
 )
 
-@app.route("/chat", methods=["POST"])
+# Only these categories may result in a filed service request.
+# "information" is answered from verified sources and "unknown" is
+# small talk; neither may create an institutional action.
+ACTIONABLE_CATEGORIES = {
+    "certificate",
+    "maintenance",
+    "laboratory",
+    "grievance"
+}
 
+# How many turns of chat history to carry into the model.
+MAX_HISTORY_TURNS = 12
+
+# Window in which a second request of the same category from the same
+# user is treated as an accidental duplicate rather than a new one.
+DUPLICATE_WINDOW_SECONDS = 120
+
+
+def _recent_duplicate(user, category):
+    """
+    Find a still-pending request this user just filed in this category.
+    """
+
+    cutoff = datetime.utcnow() - timedelta(
+        seconds=DUPLICATE_WINDOW_SECONDS
+    )
+
+    return ServiceRequest.query.filter(
+        ServiceRequest.user_id == user.id,
+        ServiceRequest.category.ilike(category),
+        ServiceRequest.status == "Pending Approval",
+        ServiceRequest.created_at >= cutoff
+    ).order_by(
+        ServiceRequest.created_at.desc()
+    ).first()
+
+
+@app.route("/chat", methods=["POST"])
 def chat():
-    
-    data = request.get_json()
-    user_message = data.get("message")
-    history = session.setdefault("chat_history", [])
+
+    user = get_current_user()
+
+    if not user:
+        return jsonify({
+            "reply": {
+                "message": "Please login before using the assistant.",
+                "status": "complete",
+                "category": "unknown",
+                "sources": [],
+                "grounded": False
+            }
+        }), 401
+
+    data = request.get_json(silent=True) or {}
+
+    user_message = (data.get("message") or "").strip()
+
+    if not user_message:
+        return jsonify({
+            "reply": {
+                "message": "Please enter a message.",
+                "status": "complete",
+                "category": "unknown",
+                "sources": [],
+                "grounded": False
+            }
+        }), 400
+
+    if len(user_message) > 2000:
+        return jsonify({
+            "reply": {
+                "message": "That message is too long. Please shorten it.",
+                "status": "complete",
+                "category": "unknown",
+                "sources": [],
+                "grounded": False
+            }
+        }), 400
+
+    history = session.get("chat_history", [])
     history.append({"role": "user", "content": user_message})
-    user_request = understand_request(user_message, history)
-    history.append({"role": "bot", "content": user_request["message"]})
-    session["chat_history"] = history
+
+    user_request = understand_request(
+        user_message,
+        history[-MAX_HISTORY_TURNS:]
+    )
+
+    category = user_request.get("category", "unknown")
+
+    # -----------------------------------------------------
+    # FILE THE REQUEST ONCE EVERY REQUIRED FIELD IS PRESENT
+    # -----------------------------------------------------
+
+    if (
+        user_request.get("status") == "complete"
+        and category in ACTIONABLE_CATEGORIES
+    ):
+
+        fields = user_request.get("fields", {})
+
+        description = " | ".join(
+            f"{key}: {value}"
+            for key, value in fields.items()
+        )
+
+        # A user answering a follow-up question after their request was
+        # already filed would otherwise open a second, near-empty one.
+        duplicate = _recent_duplicate(user, category)
+
+        if duplicate is not None:
+
+            user_request["request_id"] = duplicate.id
+
+            user_request["message"] = (
+                f"You already have a {category} request filed as "
+                f"request #{duplicate.id}, still waiting for approval. "
+                f"I haven't filed a duplicate."
+            )
+
+            session["chat_history"] = []
+
+            return jsonify({"reply": user_request})
+
+        service_request = create_approval_request(
+            user=user,
+            service=category.capitalize(),
+            description=description
+        )
+
+        user_request["request_id"] = service_request.id
+
+        user_request["message"] = (
+            f"Your {category} request has been filed as "
+            f"request #{service_request.id} and is waiting for "
+            f"human approval."
+        )
+
+        history = []
+
+    else:
+        history.append({
+            "role": "bot",
+            "content": user_request.get("message", "")
+        })
+
+    session["chat_history"] = history[-MAX_HISTORY_TURNS:]
+
     return jsonify({"reply": user_request})
 
-    
+
 # =========================================================
 # DATABASE CONFIGURATION
 # =========================================================

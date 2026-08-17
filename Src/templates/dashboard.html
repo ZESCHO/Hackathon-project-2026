@@ -1412,11 +1412,33 @@
             document.getElementById("ai-chat-modal").style.display = "none";
         }
 
-        function addAIMessage(text, sender) {
+        // Text from the user and from the model is never trusted as
+        // markup; it is inserted as text nodes only.
+        function addAIMessage(text, sender, meta) {
             const chatBox = document.getElementById("ai-chat-box");
+
             const msg = document.createElement("div");
             msg.className = sender === "user" ? "ai-message user-message" : "ai-message bot-message";
-            msg.innerHTML = `<div class="ai-message-content">${text}</div>`;
+
+            const content = document.createElement("div");
+            content.className = "ai-message-content";
+            content.textContent = text;
+            msg.appendChild(content);
+
+            // Show where an answer came from, so a reader can trace it
+            // back to a verified institutional source.
+            if (meta && meta.sources && meta.sources.length) {
+                const cite = document.createElement("div");
+                cite.className = "ai-sources";
+                cite.textContent = "📄 Verified sources: " + meta.sources.join(", ");
+                msg.appendChild(cite);
+            } else if (meta && meta.unverified) {
+                const warn = document.createElement("div");
+                warn.className = "ai-unverified";
+                warn.textContent = "⚠️ Not covered by the verified knowledge base";
+                msg.appendChild(warn);
+            }
+
             chatBox.appendChild(msg);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -1429,20 +1451,37 @@
             addAIMessage(message, "user");
             input.value = "";
 
-            const response = await fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: message })
+            let reply;
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: message })
+                });
+                reply = (await response.json()).reply;
+            } catch (error) {
+                addAIMessage("I could not reach the assistant. Please try again.", "bot");
+                return;
+            }
+
+            if (!reply) {
+                addAIMessage("I could not reach the assistant. Please try again.", "bot");
+                return;
+            }
+
+            const text = reply.status === "needs_clarification"
+                ? (reply.clarification_question || reply.message)
+                : reply.message;
+
+            addAIMessage(text, "bot", {
+                sources: reply.sources,
+                unverified: reply.category === "information" && !reply.grounded
             });
-            const data = await response.json();
-            console.log(data.reply)
-            const { status, message: botMessage, clarification_question } = data.reply;
-            const fullMessage = status === 'needs_clarification' ? `${botMessage} ${clarification_question}` : botMessage;
-            addAIMessage(fullMessage, "bot")
         }
     </script>
 
 
 </body>
-
+    
 </html>

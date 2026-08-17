@@ -1,0 +1,22 @@
+[
+  {
+    "id": "maint-001",
+    "title": "Maintenance categories",
+    "content": "Maintenance requests are categorized as Electrical, Plumbing, HVAC/AC, Furniture, or Internet/Network. Each request must specify location, room number, and category."
+  },
+  {
+    "id": "maint-002",
+    "title": "Priority and SLA",
+    "content": "High priority (safety hazards, no power, flooding): resolved within 4 hours. Medium priority (AC, furniture): resolved within 2 working days. Low priority (cosmetic issues): resolved within 5 working days."
+  },
+  {
+    "id": "maint-003",
+    "title": "Hostel vs classroom scope",
+    "content": "Hostel maintenance requests require room number and block name. Classroom/lab maintenance requests require building name and room number. Requests outside campus property are not eligible."
+  },
+  {
+    "id": "maint-004",
+    "title": "Escalation",
+    "content": "If a high-priority request is not addressed within the SLA, it is automatically escalated to the campus facilities manager for review."
+  }
+]

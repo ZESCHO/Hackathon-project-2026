@@ -1,0 +1,22 @@
+[
+  {
+    "id": "lab-001",
+    "title": "Booking eligibility",
+    "content": "Laboratory bookings are open to enrolled students and faculty only. Bookings must be made at least 24 hours in advance."
+  },
+  {
+    "id": "lab-002",
+    "title": "Booking duration",
+    "content": "Maximum booking duration is 3 hours per session. Labs cannot be double-booked; the system must check for time conflicts before confirming."
+  },
+  {
+    "id": "lab-003",
+    "title": "Restricted labs",
+    "content": "Research labs (e.g. Advanced Chemistry Lab, Robotics Lab) require faculty co-signature approval in addition to standard booking. Standard teaching labs do not require this."
+  },
+  {
+    "id": "lab-004",
+    "title": "Cancellation policy",
+    "content": "Bookings can be cancelled up to 2 hours before the session with no penalty. Late cancellations may affect future booking priority."
+  }
+]
