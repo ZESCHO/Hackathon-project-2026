@@ -1445,27 +1445,6 @@ html[data-theme="light"] .empty-state {
     border-left: 3px solid #f87171;
 }
 
-/* Language selector in the assistant header. */
-.ai-header-tools {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.ai-header-tools select {
-    background: rgba(125, 211, 252, 0.10);
-    border: 1px solid rgba(125, 211, 252, 0.28);
-    color: var(--text);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 0.82rem;
-}
-
-.ai-header-tools select option {
-    background: var(--bg-800);
-    color: var(--text);
-}
-
 /* =========================================================
    PLAN AND POLICY PANELS ON THE APPROVAL PAGE
    ========================================================= */

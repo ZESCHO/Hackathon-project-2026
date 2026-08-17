@@ -6,14 +6,8 @@
     "aliases": [
       "bonafide",
       "bona fide",
-      "बोनाफाइड",
-      "बोनाफ़ाइड",
-      "বোনাফাইড",
-      "போனாஃபைடு",
-      "certificado bonafide",
-      "certificat de scolarité",
-      "certificat de scolarite",
-      "अध्ययन प्रमाणपत्र"
+      "study certificate",
+      "enrolment certificate"
     ]
   },
   {
@@ -22,13 +16,8 @@
     "content": "A Transfer Certificate is issued only after all dues (library, hostel, lab) are cleared. Requires a no-dues form signed by all departments. Processing time is 5 working days. Fee: 200 INR.",
     "aliases": [
       "transfer",
-      "ट्रांसफर",
-      "स्थानांतरण",
-      "ট্রান্সফার",
-      "மாற்று",
-      "traslado",
-      "transfert",
-      "tc"
+      "tc",
+      "leaving certificate"
     ]
   },
   {
@@ -37,15 +26,7 @@
     "content": "Character Certificates require no disciplinary record in the current academic year. Issued by the Dean of Student Affairs. Processing time is 3 working days.",
     "aliases": [
       "character",
-      "चरित्र",
-      "आचरण",
-      "চরিত্র",
-      "நடத்தை",
-      "conducta",
-      "carácter",
-      "caracter",
-      "moralité",
-      "moralite"
+      "conduct certificate"
     ]
   },
   {

@@ -13,7 +13,7 @@ It checks the behaviour the platform is judged on:
 - nothing executes without human approval
 - execution creates real institutional records
 - policy rules from the knowledge base are actually enforced
-- the same holds when the user writes in another language
+- messages in other languages are declined, not guessed at
 
 Requires the local Ollama model to be running.
 """
@@ -82,13 +82,11 @@ def main():
         with app.app_context():
             return model.query.count()
 
-    def chat(message, language=None):
-        payload = {"message": message}
-
-        if language:
-            payload["language"] = language
-
-        return client.post("/chat", json=payload).json["reply"]
+    def chat(message):
+        return client.post(
+            "/chat",
+            json={"message": message}
+        ).json["reply"]
 
     # ----------------------------------------------------------
     section("AUTHENTICATION")
@@ -284,26 +282,40 @@ def main():
         )
 
     # ----------------------------------------------------------
-    section("MULTILINGUAL")
+    section("ENGLISH ONLY")
 
     before = count(ServiceRequest)
 
-    reply = chat("How long does a bonafide certificate take?", "hi")
+    for message, label in [
+        ("मुझे बोनाफाइड सर्टिफिकेट चाहिए", "devanagari"),
+        ("எனக்கு சான்றிதழ் வேண்டும்", "tamil"),
+        ("Necesito un certificado de traslado", "spanish"),
+    ]:
+        reply = chat(message)
 
-    check("pinned language answers grounded", reply["grounded"] is True)
+        check(
+            f"{label} request is declined",
+            reply.get("is_english") is False,
+            f"is_english={reply.get('is_english')}"
+        )
+        check(
+            f"{label} reply explains English only",
+            "English" in reply.get("message", "")
+        )
 
-    reply = chat("¿Hay que pagar por el certificado de traslado?")
-
-    check("spanish question is detected", reply.get("language") == "es")
     check(
-        "spanish question is treated as information",
-        reply.get("category") == "information",
-        reply.get("category")
-    )
-    check(
-        "non-english question creates no request",
+        "no request is filed from non-english input",
         count(ServiceRequest) == before,
         f"{count(ServiceRequest) - before} created"
+    )
+
+    reply = chat("The fan in room 8 of C block has stopped working")
+
+    check(
+        "english request still works",
+        reply.get("is_english") is not False
+        and reply.get("category") == "maintenance",
+        reply.get("category")
     )
 
     # ----------------------------------------------------------

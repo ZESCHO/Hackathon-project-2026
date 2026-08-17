@@ -19,7 +19,6 @@ from app.models.request import ServiceRequest
 from app.models.workflow import Workflow
 from app.db_migrate import sync_columns
 from app.workflows.executor import create_workflow, execute_workflow
-from app.i18n import translate, normalize, SUPPORTED_LANGUAGES
 
 # =========================================================
 # FLASK APP
@@ -74,19 +73,14 @@ def chat():
 
     data = request.get_json(silent=True) or {}
 
-    # The interface may pin a language; otherwise it is detected from
-    # the message itself.
-    language = normalize(data.get("language"))
-
     user = get_current_user()
 
     if not user:
         return jsonify({
             "reply": {
-                "message": translate("chat.login_required", language),
+                "message": "Please login before using the assistant.",
                 "status": "complete",
                 "category": "unknown",
-                "language": language,
                 "sources": [],
                 "grounded": False
             }
@@ -97,7 +91,7 @@ def chat():
     if not user_message:
         return jsonify({
             "reply": {
-                "message": translate("chat.empty_message", language),
+                "message": "Please enter a message.",
                 "status": "complete",
                 "category": "unknown",
                 "sources": [],
@@ -108,7 +102,7 @@ def chat():
     if len(user_message) > 2000:
         return jsonify({
             "reply": {
-                "message": translate("chat.too_long", language),
+                "message": "That message is too long. Please shorten it.",
                 "status": "complete",
                 "category": "unknown",
                 "sources": [],
@@ -121,12 +115,8 @@ def chat():
 
     user_request = understand_request(
         user_message,
-        history[-MAX_HISTORY_TURNS:],
-        language=data.get("language")
+        history[-MAX_HISTORY_TURNS:]
     )
-
-    # Detection may have chosen a language when none was pinned.
-    language = normalize(user_request.get("language") or language)
 
     category = user_request.get("category", "unknown")
 
@@ -154,11 +144,10 @@ def chat():
 
             user_request["request_id"] = duplicate.id
 
-            user_request["message"] = translate(
-                "chat.duplicate",
-                language,
-                category=translate(f"category.{category}", language),
-                request_id=duplicate.id
+            user_request["message"] = (
+                f"You already have a {category} request filed as "
+                f"request #{duplicate.id}, still waiting for approval. "
+                f"I haven't filed a duplicate."
             )
 
             session["chat_history"] = []
@@ -175,11 +164,10 @@ def chat():
 
         user_request["request_id"] = service_request.id
 
-        user_request["message"] = translate(
-            "chat.filed",
-            language,
-            category=translate(f"category.{category}", language),
-            request_id=service_request.id
+        user_request["message"] = (
+            f"Your {category} request has been filed as "
+            f"request #{service_request.id} and is waiting for "
+            f"human approval."
         )
 
         history = []
@@ -451,9 +439,7 @@ def home():
 
         grievance_requests=grievance_requests,
 
-        recent_requests=recent_requests,
-
-        languages=SUPPORTED_LANGUAGES
+        recent_requests=recent_requests
     )
 
 
