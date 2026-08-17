@@ -18,6 +18,7 @@ from datetime import datetime
 
 from app.ollama_client import ask_model, ModelUnavailable
 from app.rag.retriever import search, format_context, get_index
+from app.i18n import translate, normalize, language_name, field_label
 
 
 # Categories the platform can act on, plus the two non-action cases.
@@ -29,6 +30,18 @@ SERVICE_CATEGORIES = [
 ]
 
 ALL_CATEGORIES = SERVICE_CATEGORIES + ["information", "unknown"]
+
+
+# The model is instructed by language name rather than ISO code, which
+# it follows far more reliably.
+LANGUAGE_PROMPT_NAMES = {
+    "en": "English",
+    "hi": "Hindi",
+    "ta": "Tamil",
+    "bn": "Bengali",
+    "es": "Spanish",
+    "fr": "French"
+}
 
 
 REQUIRED_FIELDS = {
@@ -57,6 +70,10 @@ def _known_values(category):
     """
     Collect the recognised values for a category's closed field.
 
+    Each value is returned with the aliases that should resolve to it,
+    so a request written in another language still lands on the
+    canonical English name that policy rules are matched against.
+
     Values come from the knowledge base itself, so adding a new
     certificate type to certificates.json makes it recognisable here
     with no code change.
@@ -77,14 +94,42 @@ def _known_values(category):
         if document["category"] != category:
             continue
 
+        alias_map = document.get("alias_map") or {}
+
+        # When a snippet names several things, each canonical name gets
+        # only its own aliases; otherwise the whole list applies.
+        shared_aliases = [] if alias_map else [
+            alias.lower()
+            for alias in document.get("aliases", [])
+        ]
+
         # Titles name the thing ("Transfer Certificate"); prose mentions
         # specific instances ("Advanced Chemistry Lab, Robotics Lab").
         for phrase in _candidate_phrases(document, suffix):
 
-            if phrase not in values:
-                values.append(phrase)
+            if any(phrase == value["name"] for value in values):
+                continue
+
+            values.append({
+                "name": phrase,
+                # The distinguishing word, plus every alias from the
+                # knowledge base entry this phrase came from.
+                "keys": [phrase.split()[0].lower()] + (
+                    [a.lower() for a in alias_map.get(phrase, [])]
+                    if alias_map
+                    else shared_aliases
+                )
+            })
 
     return values
+
+
+def known_value_names(category):
+    """
+    Just the canonical names, for prompting and display.
+    """
+
+    return [value["name"] for value in _known_values(category)]
 
 
 _PHRASE_PATTERN = re.compile(
@@ -240,9 +285,10 @@ def _resolve_closed_vocabulary(category, fields, transcript):
     """
     Fill a closed field by matching the transcript against known values.
 
-    The model regularly returns an empty certificate_type even when the
-    user plainly said "character certificate". Matching the text against
-    the knowledge base recovers it without inventing anything.
+    The model regularly returns an empty or non-English
+    certificate_type even when the user plainly named one. Matching the
+    text against the knowledge base, including its multilingual
+    aliases, recovers the canonical name without inventing anything.
     """
 
     field = CLOSED_VOCABULARY_FIELDS.get(category)
@@ -252,19 +298,14 @@ def _resolve_closed_vocabulary(category, fields, transcript):
 
     current = str(fields.get(field, "")).strip()
 
-    # Search the model's own value first so a loose form ("robotics
-    # lab") is snapped to the canonical name, which later policy checks
-    # match against.
+    # Search the model's own value first so a loose or translated form
+    # is snapped to the canonical name that policy checks match on.
     haystack = f"{current}\n{transcript}".lower()
 
     for value in _known_values(category):
 
-        # Match on the distinguishing word ("character", "robotics")
-        # rather than the full phrase, which users rarely type in full.
-        head = value.split()[0].lower()
-
-        if head in haystack:
-            fields[field] = value
+        if any(key and key in haystack for key in value["keys"]):
+            fields[field] = value["name"]
             return fields
 
     return fields
@@ -342,18 +383,30 @@ def _extract_json(text):
 # GROUNDED ANSWERING
 # =========================================================
 
-def _unverified_answer(reason):
+_CITATION_MARKER = re.compile(r"\s*[\[(]\s*[a-z]+-\d+\s*[\])]")
+
+
+def _strip_citation_markers(text):
+    """
+    Remove inline "[cert-001]" markers from an answer.
+    """
+
+    cleaned = _CITATION_MARKER.sub("", text or "")
+
+    return " ".join(cleaned.split()).strip()
+
+
+def _unverified_answer(reason, language="en"):
     """
     The standard refusal used whenever the knowledge base cannot
     support an answer. Declining is always preferred to guessing.
+
+    This is a fixed translated string rather than model output: a
+    refusal must say exactly what we mean in every language.
     """
 
     return {
-        "answer": (
-            "I don't have verified information about that in the "
-            "institutional knowledge base, so I can't answer it. "
-            "Please contact the relevant campus office to confirm."
-        ),
+        "answer": translate("chat.unverified", language),
         "sources": [],
         "grounded": False,
         "reason": reason
@@ -420,19 +473,32 @@ def _retrieve(question, category=None):
     return expanded_hits or hits
 
 
-def answer_question(question, category=None):
+def answer_question(question, category=None, language="en"):
     """
     Answer an institutional question strictly from verified snippets.
 
     Returns a dict with the answer text, the snippet ids it was drawn
     from, and a `grounded` flag. When `grounded` is False the platform
     is explicitly saying it does not know.
+
+    The answer is written in the user's language, but it is still drawn
+    only from the English knowledge base: translation happens at the
+    point of writing, never by inventing content in another language.
     """
 
     hits = _retrieve(question, category=category)
 
     if not hits:
-        return _unverified_answer("No relevant knowledge base entry")
+        return _unverified_answer(
+            "No relevant knowledge base entry",
+            language=language
+        )
+
+    # The model is told the language by name, not by ISO code.
+    target_language = LANGUAGE_PROMPT_NAMES.get(
+        normalize(language),
+        "English"
+    )
 
     prompt = f"""
 You answer questions about institutional services for a campus
@@ -455,6 +521,8 @@ Rules you must follow:
 - Cite the id of every snippet you used, exactly as written in
   square brackets above.
 - Keep the answer under 60 words, plain and direct.
+- Write "answer" in {target_language}. Translate the verified facts
+  into that language; do not add anything that is not stated above.
 
 Return ONLY this JSON object:
 
@@ -470,14 +538,14 @@ Return ONLY this JSON object:
 
     except ModelUnavailable as error:
         print("MODEL UNAVAILABLE:", error)
-        return _unverified_answer("Model unavailable")
+        return _unverified_answer("Model unavailable", language)
 
     except (ValueError, json.JSONDecodeError) as error:
         print("GROUNDED ANSWER PARSE ERROR:", error)
-        return _unverified_answer("Unreadable model response")
+        return _unverified_answer("Unreadable model response", language)
 
     if not data.get("sufficient") or not (data.get("answer") or "").strip():
-        return _unverified_answer("Knowledge base did not cover the question")
+        return _unverified_answer("Knowledge base did not cover the question", language)
 
     # Only ids that were actually retrieved may be cited; this stops a
     # model from inventing a source to make an answer look verified.
@@ -490,10 +558,12 @@ Return ONLY this JSON object:
     ]
 
     if not cited:
-        return _unverified_answer("Answer cited no verified source")
+        return _unverified_answer("Answer cited no verified source", language)
 
     return {
-        "answer": data["answer"].strip(),
+        # Sources are returned separately and shown as their own badge,
+        # so inline markers would only clutter the sentence.
+        "answer": _strip_citation_markers(data["answer"]),
         "sources": cited,
         "grounded": True,
         "reason": ""
@@ -504,17 +574,20 @@ Return ONLY this JSON object:
 # REQUEST UNDERSTANDING
 # =========================================================
 
-def _fallback_understanding(message):
+def _fallback_understanding(key, language="en"):
     """
     Safe result used when the model cannot be reached or parsed.
     """
 
+    language = normalize(language)
+
     return {
+        "language": language,
         "intent": "unknown",
         "category": "unknown",
         "action": "unknown",
         "confidence": "low",
-        "message": message,
+        "message": translate(key, language),
         "status": "needs_clarification",
         "missing": [],
         "clarification_question": "",
@@ -524,7 +597,7 @@ def _fallback_understanding(message):
     }
 
 
-def understand_request(user_request, history=None):
+def understand_request(user_request, history=None, language=None):
     """
     Classify a message and track the fields its service request needs.
 
@@ -555,6 +628,11 @@ def understand_request(user_request, history=None):
     # be resolved without being told what today is.
     today = datetime.now()
 
+    # Supplying the recognised values keeps these fields canonical
+    # regardless of the language the user wrote in.
+    certificate_types = ", ".join(known_value_names("certificate")) or "none"
+    laboratory_names = ", ".join(known_value_names("laboratory")) or "none"
+
     prompt = f"""
 You are the understanding module of a Secure Agentic-AI institutional
 service platform.
@@ -580,11 +658,24 @@ Intents:
 certificate_request, maintenance_report, laboratory_booking,
 grievance_submission, information_query, unknown
 
-Distinguishing requests from questions matters:
-- "I need a bonafide certificate for a bank loan" -> certificate
-- "How long does a bonafide certificate take?"    -> information
-- "The AC in room 204 is broken"                  -> maintenance
-- "How fast are AC repairs handled?"              -> information
+Distinguishing requests from questions matters, and it matters in
+every language. A message that ASKS about rules, fees, timelines,
+eligibility or procedure is "information", never a service request,
+no matter what it is about or what language it is written in:
+
+- "I need a bonafide certificate for a bank loan"  -> certificate
+- "How long does a bonafide certificate take?"     -> information
+- "The AC in room 204 is broken"                   -> maintenance
+- "How fast are AC repairs handled?"               -> information
+- "¿Hay que pagar por el certificado de traslado?" -> information
+- "Necesito un certificado de traslado"            -> certificate
+- "बोनाफाइड सर्टिफिकेट में कितने दिन लगते हैं?"          -> information
+- "मुझे बोनाफाइड सर्टिफिकेट चाहिए"                     -> certificate
+- "Combien de temps faut-il pour un certificat ?"  -> information
+- "எனக்கு ஒரு சான்றிதழ் வேண்டும்"                    -> certificate
+
+A question mark, or a word meaning how long / how much / do I need /
+is it / what is, is a strong signal for "information".
 
 Conversation so far:
 {history_text}
@@ -616,6 +707,16 @@ leave a field out because it was phrased casually. Worked examples:
 
 Only list a field in "missing" if the user genuinely has not given it.
 
+Two fields must be reported using their official English name, even
+when the user writes in another language, because institutional policy
+is matched against these exact names:
+
+- certificate_type must be one of: {certificate_types}
+- laboratory_name must be one of these when the user means one of
+  them: {laboratory_names}
+
+Every other field keeps the user's own wording and language.
+
 For categories "information" and "unknown", status must always be
 "complete", "missing" must be empty and "fields" must be an empty
 object. Never ask a question for clarification in those cases.
@@ -637,9 +738,15 @@ room:
 Keep "message" to one short sentence and never repeat what is in
 clarification_question.
 
+Detect the language the user wrote in and return its ISO 639-1 code
+in "language" (for example en, hi, ta, bn, es, fr). Romanised text
+still counts as its own language: "mujhe certificate chahiye" is hi.
+Write "message" in that same language.
+
 Return exactly this structure:
 
 {{
+    "language": "ISO 639-1 code of the user's language",
     "intent": "one of the intents above",
     "category": "one of the categories above",
     "action": "request, report, book, submit, ask, or unknown",
@@ -657,21 +764,16 @@ Return exactly this structure:
 
     except ModelUnavailable as error:
         print("MODEL UNAVAILABLE:", error)
-        return _fallback_understanding(
-            "The assistant is offline right now, so I can't process "
-            "that. Please use the service forms, or try again shortly."
-        )
+        return _fallback_understanding("chat.offline", language)
 
     except (ValueError, json.JSONDecodeError) as error:
         print("UNDERSTANDING PARSE ERROR:", error)
-        return _fallback_understanding(
-            "I could not understand that clearly. Could you rephrase it?"
-        )
+        return _fallback_understanding("chat.unclear", language)
 
-    return _normalize(data, user_request, transcript)
+    return _normalize(data, user_request, transcript, language)
 
 
-def _normalize(data, user_request, transcript=""):
+def _normalize(data, user_request, transcript="", language=None):
     """
     Validate the model's classification and attach grounded content.
     """
@@ -693,7 +795,13 @@ def _normalize(data, user_request, transcript=""):
 
     status = str(data.get("status", "complete")).lower().strip()
 
+    # An explicit choice in the interface always wins over detection.
+    effective_language = normalize(
+        language or data.get("language")
+    )
+
     result = {
+        "language": effective_language,
         "intent": str(data.get("intent", "unknown")),
         "category": category,
         "action": str(data.get("action", "unknown")),
@@ -715,7 +823,10 @@ def _normalize(data, user_request, transcript=""):
 
     if category == "information":
 
-        grounded = answer_question(user_request)
+        grounded = answer_question(
+            user_request,
+            language=effective_language
+        )
 
         result["message"] = grounded["answer"]
         result["sources"] = grounded["sources"]
@@ -787,8 +898,10 @@ def _normalize(data, user_request, transcript=""):
 
         # Always derived from the recomputed list: the model's own
         # question routinely disagrees with what is actually missing.
+        # Labels are translated; the field keys stay canonical.
         result["clarification_question"] = "\n".join(
-            f"{field}:" for field in actually_missing
+            f"{field_label(field, effective_language)}:"
+            for field in actually_missing
         )
 
     else:

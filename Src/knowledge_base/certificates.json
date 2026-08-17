@@ -2,17 +2,51 @@
   {
     "id": "cert-001",
     "title": "Bonafide Certificate",
-    "content": "A Bonafide Certificate confirms a student is currently enrolled. Required: student ID and purpose (e.g. bank loan, visa, scholarship). Processing time is 2 working days. No fee is charged."
+    "content": "A Bonafide Certificate confirms a student is currently enrolled. Required: student ID and purpose (e.g. bank loan, visa, scholarship). Processing time is 2 working days. No fee is charged.",
+    "aliases": [
+      "bonafide",
+      "bona fide",
+      "बोनाफाइड",
+      "बोनाफ़ाइड",
+      "বোনাফাইড",
+      "போனாஃபைடு",
+      "certificado bonafide",
+      "certificat de scolarité",
+      "certificat de scolarite",
+      "अध्ययन प्रमाणपत्र"
+    ]
   },
   {
     "id": "cert-002",
     "title": "Transfer Certificate",
-    "content": "A Transfer Certificate is issued only after all dues (library, hostel, lab) are cleared. Requires a no-dues form signed by all departments. Processing time is 5 working days. Fee: 200 INR."
+    "content": "A Transfer Certificate is issued only after all dues (library, hostel, lab) are cleared. Requires a no-dues form signed by all departments. Processing time is 5 working days. Fee: 200 INR.",
+    "aliases": [
+      "transfer",
+      "ट्रांसफर",
+      "स्थानांतरण",
+      "ট্রান্সফার",
+      "மாற்று",
+      "traslado",
+      "transfert",
+      "tc"
+    ]
   },
   {
     "id": "cert-003",
     "title": "Character Certificate",
-    "content": "Character Certificates require no disciplinary record in the current academic year. Issued by the Dean of Student Affairs. Processing time is 3 working days."
+    "content": "Character Certificates require no disciplinary record in the current academic year. Issued by the Dean of Student Affairs. Processing time is 3 working days.",
+    "aliases": [
+      "character",
+      "चरित्र",
+      "आचरण",
+      "চরিত্র",
+      "நடத்தை",
+      "conducta",
+      "carácter",
+      "caracter",
+      "moralité",
+      "moralite"
+    ]
   },
   {
     "id": "cert-004",

@@ -12,7 +12,28 @@
   {
     "id": "lab-003",
     "title": "Restricted labs",
-    "content": "Research labs (e.g. Advanced Chemistry Lab, Robotics Lab) require faculty co-signature approval in addition to standard booking. Standard teaching labs do not require this."
+    "content": "Research labs (e.g. Advanced Chemistry Lab, Robotics Lab) require faculty co-signature approval in addition to standard booking. Standard teaching labs do not require this.",
+    "aliases": {
+      "Robotics Lab": [
+        "robotics",
+        "रोबोटिक्स",
+        "ரோபோட்டிக்ஸ",
+        "রোবোটিক্স",
+        "laboratorio de robotica",
+        "laboratorio de robótica",
+        "robotique"
+      ],
+      "Advanced Chemistry Lab": [
+        "advanced chemistry",
+        "उन्नत रसायन",
+        "மேம்பட்ட வேதியியல்",
+        "উন্নত রসায়ন",
+        "quimica avanzada",
+        "química avanzada",
+        "chimie avancee",
+        "chimie avancée"
+      ]
+    }
   },
   {
     "id": "lab-004",

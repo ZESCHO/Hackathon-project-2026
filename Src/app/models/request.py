@@ -49,6 +49,14 @@ class ServiceRequest(db.Model):
         default=False
     )
 
+    # The structured values collected for this request, keyed by the
+    # canonical field names in app/ai_agent.py. Execution reads these
+    # rather than trying to parse them back out of request_text.
+    fields_json = db.Column(
+        db.JSON,
+        nullable=True
+    )
+
     created_at = db.Column(
         db.DateTime,
         default=datetime.utcnow

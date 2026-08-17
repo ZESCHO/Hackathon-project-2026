@@ -1387,7 +1387,15 @@
         <div class="ai-chat-container">
             <div class="ai-chat-header">
                 <h2>🤖 AI Assistant</h2>
-                <button class="ai-close-btn" onclick="closeAIChat()">✕</button>
+                <div class="ai-header-tools">
+                    <select id="ai-language" aria-label="Language">
+                        <option value="">Auto-detect</option>
+                        {% for code, name in languages.items() %}
+                        <option value="{{ code }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button class="ai-close-btn" onclick="closeAIChat()">✕</button>
+                </div>
             </div>
             <div id="ai-chat-box">
                 <div class="ai-message bot-message">
@@ -1453,11 +1461,17 @@
 
             let reply;
 
+            const languageSelect = document.getElementById("ai-language");
+            const language = languageSelect ? languageSelect.value : "";
+
             try {
                 const response = await fetch("/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({
+                        message: message,
+                        language: language || undefined
+                    })
                 });
                 reply = (await response.json()).reply;
             } catch (error) {

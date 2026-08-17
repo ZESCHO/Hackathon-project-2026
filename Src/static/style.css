@@ -1380,3 +1380,159 @@ html[data-theme="light"] .empty-state {
         padding: 8px 10px !important;
     }
 }
+
+/* =========================================================
+   WORKFLOW STEP RESULTS
+   ========================================================= */
+
+.workflow-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.workflow-step {
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: rgba(125, 211, 252, 0.06);
+    border: 1px solid rgba(125, 211, 252, 0.16);
+    border-left: 3px solid var(--primary);
+}
+
+.workflow-step.step-satisfied {
+    border-left-color: #a78bfa;
+}
+
+.workflow-step.step-skipped {
+    border-left-color: rgba(148, 163, 184, 0.6);
+    opacity: 0.75;
+}
+
+.workflow-step-head {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.5;
+}
+
+.step-status {
+    flex: 0 0 auto;
+}
+
+.step-summary {
+    flex: 1 1 auto;
+}
+
+.step-detail {
+    display: grid;
+    grid-template-columns: minmax(90px, max-content) 1fr;
+    gap: 4px 14px;
+    margin: 10px 0 0 30px;
+    font-size: 0.86rem;
+}
+
+.step-detail dt {
+    color: var(--muted);
+}
+
+.step-detail dd {
+    margin: 0;
+    word-break: break-word;
+}
+
+.info-card.policy-blocked {
+    border-left: 3px solid #f87171;
+}
+
+/* Language selector in the assistant header. */
+.ai-header-tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ai-header-tools select {
+    background: rgba(125, 211, 252, 0.10);
+    border: 1px solid rgba(125, 211, 252, 0.28);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+}
+
+.ai-header-tools select option {
+    background: var(--bg-800);
+    color: var(--text);
+}
+
+/* =========================================================
+   PLAN AND POLICY PANELS ON THE APPROVAL PAGE
+   ========================================================= */
+
+.plan-panel,
+.policy-panel {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(125, 211, 252, 0.05);
+    border: 1px solid rgba(125, 211, 252, 0.16);
+}
+
+.policy-panel {
+    background: rgba(250, 204, 21, 0.06);
+    border-color: rgba(250, 204, 21, 0.22);
+}
+
+.policy-note {
+    margin-top: 10px;
+    padding-left: 10px;
+    border-left: 2px solid rgba(250, 204, 21, 0.5);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.policy-note-blocking {
+    border-left-color: var(--danger);
+}
+
+.policy-source {
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-right: 6px;
+}
+
+.policy-flag {
+    display: inline-block;
+    padding: 1px 8px;
+    margin-right: 6px;
+    border-radius: 999px;
+    background: rgba(248, 113, 113, 0.16);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    color: var(--danger);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.plan-steps {
+    margin: 10px 0 0 18px;
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+
+.plan-step-human {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.plan-actor {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-left: 6px;
+}
+
+.workflow-step.step-rolled_back {
+    border-left-color: var(--warning);
+    opacity: 0.85;
+}

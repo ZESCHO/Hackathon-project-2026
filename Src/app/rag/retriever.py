@@ -62,7 +62,9 @@ STOPWORDS = {
 }
 
 
-TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+# Unicode aware: the knowledge base carries aliases in Devanagari,
+# Tamil and Bengali, and questions arrive in those scripts too.
+TOKEN_PATTERN = re.compile(r"\w+", re.UNICODE)
 
 
 def _stem(token):
@@ -148,10 +150,34 @@ def _load_documents():
             if not content:
                 continue
 
+            raw_aliases = entry.get("aliases") or []
+
+            # Aliases may be a flat list (the snippet names one thing)
+            # or a mapping of canonical name -> aliases (it names
+            # several, as the restricted laboratories snippet does).
+            if isinstance(raw_aliases, dict):
+                alias_map = {
+                    str(name): [str(a).strip() for a in values if str(a).strip()]
+                    for name, values in raw_aliases.items()
+                }
+                raw_aliases = [a for values in alias_map.values() for a in values]
+            else:
+                alias_map = {}
+
             documents.append({
                 "id": entry.get("id") or f"{stem}-{len(documents)}",
                 "title": (entry.get("title") or "").strip(),
                 "content": content,
+                # Other names for the same thing, including translations
+                # and transliterations. Indexed so a question asked in
+                # another language still reaches the right snippet.
+                "aliases": [
+                    str(alias).strip()
+                    for alias in raw_aliases
+                    if str(alias).strip()
+                ],
+                # Present only when the snippet names several things.
+                "alias_map": alias_map,
                 "category": category,
                 "source": filename
             })
@@ -173,9 +199,12 @@ def _build_index():
     for document in documents:
 
         # Title terms are worth repeating: they are short and
-        # highly descriptive of what the snippet covers.
+        # highly descriptive of what the snippet covers. Aliases carry
+        # the same weight, so a question in another language scores
+        # like the English one.
         terms = (
             tokenize(document["title"]) * 2
+            + tokenize(" ".join(document.get("aliases", []))) * 2
             + tokenize(document["content"])
         )
 

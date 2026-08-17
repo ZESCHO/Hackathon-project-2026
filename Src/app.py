@@ -14,9 +14,12 @@ from flask import (
 import os
 from app.ai_agent import understand_request
 
-from app.models import db, AuditLog,User
+from app.models import db, AuditLog, User
 from app.models.request import ServiceRequest
-from app.ollama_client import ask_model
+from app.models.workflow import Workflow
+from app.db_migrate import sync_columns
+from app.workflows.executor import create_workflow, execute_workflow
+from app.i18n import translate, normalize, SUPPORTED_LANGUAGES
 
 # =========================================================
 # FLASK APP
@@ -69,27 +72,32 @@ def _recent_duplicate(user, category):
 @app.route("/chat", methods=["POST"])
 def chat():
 
+    data = request.get_json(silent=True) or {}
+
+    # The interface may pin a language; otherwise it is detected from
+    # the message itself.
+    language = normalize(data.get("language"))
+
     user = get_current_user()
 
     if not user:
         return jsonify({
             "reply": {
-                "message": "Please login before using the assistant.",
+                "message": translate("chat.login_required", language),
                 "status": "complete",
                 "category": "unknown",
+                "language": language,
                 "sources": [],
                 "grounded": False
             }
         }), 401
-
-    data = request.get_json(silent=True) or {}
 
     user_message = (data.get("message") or "").strip()
 
     if not user_message:
         return jsonify({
             "reply": {
-                "message": "Please enter a message.",
+                "message": translate("chat.empty_message", language),
                 "status": "complete",
                 "category": "unknown",
                 "sources": [],
@@ -100,7 +108,7 @@ def chat():
     if len(user_message) > 2000:
         return jsonify({
             "reply": {
-                "message": "That message is too long. Please shorten it.",
+                "message": translate("chat.too_long", language),
                 "status": "complete",
                 "category": "unknown",
                 "sources": [],
@@ -113,8 +121,12 @@ def chat():
 
     user_request = understand_request(
         user_message,
-        history[-MAX_HISTORY_TURNS:]
+        history[-MAX_HISTORY_TURNS:],
+        language=data.get("language")
     )
+
+    # Detection may have chosen a language when none was pinned.
+    language = normalize(user_request.get("language") or language)
 
     category = user_request.get("category", "unknown")
 
@@ -142,10 +154,11 @@ def chat():
 
             user_request["request_id"] = duplicate.id
 
-            user_request["message"] = (
-                f"You already have a {category} request filed as "
-                f"request #{duplicate.id}, still waiting for approval. "
-                f"I haven't filed a duplicate."
+            user_request["message"] = translate(
+                "chat.duplicate",
+                language,
+                category=translate(f"category.{category}", language),
+                request_id=duplicate.id
             )
 
             session["chat_history"] = []
@@ -155,15 +168,18 @@ def chat():
         service_request = create_approval_request(
             user=user,
             service=category.capitalize(),
-            description=description
+            description=description,
+            fields=fields,
+            category=category
         )
 
         user_request["request_id"] = service_request.id
 
-        user_request["message"] = (
-            f"Your {category} request has been filed as "
-            f"request #{service_request.id} and is waiting for "
-            f"human approval."
+        user_request["message"] = translate(
+            "chat.filed",
+            language,
+            category=translate(f"category.{category}", language),
+            request_id=service_request.id
         )
 
         history = []
@@ -183,7 +199,10 @@ def chat():
 # DATABASE CONFIGURATION
 # =========================================================
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URI",
+    "sqlite:///database.db"
+)
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -195,7 +214,15 @@ db.init_app(app)
 # =========================================================
 
 with app.app_context():
+
     db.create_all()
+
+    # Columns added to a model after the database already existed are
+    # not created by create_all(); add them in place.
+    added_columns = sync_columns(db)
+
+    if added_columns:
+        print("Database columns added:", ", ".join(added_columns))
 
 # ============================================================
 # AI RISK & POLICY ENGINE
@@ -424,7 +451,9 @@ def home():
 
         grievance_requests=grievance_requests,
 
-        recent_requests=recent_requests
+        recent_requests=recent_requests,
+
+        languages=SUPPORTED_LANGUAGES
     )
 
 
@@ -608,13 +637,17 @@ def grievance():
 def create_approval_request(
     user,
     service,
-    description
+    description,
+    fields=None,
+    category=None
 ):
 
     if not user:
         raise ValueError(
             "A logged-in user is required."
         )
+
+    fields = fields or {}
 
     new_request = ServiceRequest(
 
@@ -630,11 +663,24 @@ def create_approval_request(
 
         confidence=1.0,
 
-        requires_approval=True
+        requires_approval=True,
+
+        fields_json=fields
 
     )
 
     db.session.add(new_request)
+
+    db.session.flush()
+
+
+    # Plan the whole sequence up front, so a reviewer can see what the
+    # platform intends to do before approving any part of it.
+    workflow, plan = create_workflow(
+        new_request,
+        (category or service).lower(),
+        fields
+    )
 
     db.session.commit()
 
@@ -722,7 +768,15 @@ def grievance_submit():
             f"Category: {category} | "
             f"Priority: {priority} | "
             f"{description}"
-        )
+        ),
+        fields={
+            "subject": subject,
+            "description": description,
+            "category": category,
+            "priority": priority,
+            "reported_by": name
+        },
+        category="grievance"
     )
 
     return render_template(
@@ -767,7 +821,16 @@ def laboratory_book():
             f"Student: {name}. "
             f"Student ID: {student_id}. "
             f"Purpose: {purpose}"
-        )
+        ),
+        fields={
+            "laboratory_name": laboratory_name,
+            "booking_date": booking_date,
+            "booking_time": booking_time,
+            "purpose": purpose,
+            "student_id": student_id,
+            "reported_by": name
+        },
+        category="laboratory"
     )
 
     return render_template(
@@ -814,7 +877,16 @@ def maintenance_request():
             f"Priority: {priority} | "
             f"Reported by: {name} | "
             f"{description}"
-        )
+        ),
+        fields={
+            "location": location,
+            "room": room,
+            "description": description,
+            "category": category,
+            "priority": priority,
+            "reported_by": name
+        },
+        category="maintenance"
     )
 
     return render_template(
@@ -920,7 +992,16 @@ def certificate_request():
             f"{certificate_type} for {student_name}. "
             f"Student ID: {student_id}. "
             f"Purpose: {purpose}"
-        )
+        ),
+
+        fields={
+            "certificate_type": certificate_type,
+            "purpose": purpose,
+            "student_id": student_id,
+            "reported_by": student_name
+        },
+
+        category="certificate"
 
     )
 
@@ -1037,9 +1118,23 @@ def approval_page():
         ServiceRequest.created_at.desc()
     ).all()
 
+    # The stored plan, so the reviewer can see the intended steps and
+    # the policy findings before approving anything.
+    request_plans = {}
+
+    for item in requests:
+
+        workflow = Workflow.query.filter_by(
+            request_id=item.id
+        ).first()
+
+        if workflow and workflow.plan:
+            request_plans[item.id] = workflow.plan
+
     return render_template(
         "approval.html",
-        requests=requests
+        requests=requests,
+        request_plans=request_plans
     )
 
 
@@ -1124,10 +1219,14 @@ def approve_request(request_id):
 
         title="Request Approved",
 
+        status_label="Approved",
+
+        request_id=service_request.id,
+
         message=(
-            "The request has been approved "
-            "and the decision has been recorded "
-            "in the audit trail."
+            "The request has been approved and the decision has been "
+            "recorded in the audit trail. It can now be executed from "
+            "the Execution Center."
         )
 
     )
@@ -1215,10 +1314,13 @@ def reject_request(request_id):
 
         title="Request Rejected",
 
+        status_label="Rejected",
+
+        request_id=service_request.id,
+
         message=(
-            "The request has been rejected "
-            "and the decision has been recorded "
-            "in the audit trail."
+            "The request has been rejected and the decision has been "
+            "recorded in the audit trail. No action will be carried out."
         )
 
     )
@@ -1527,80 +1629,77 @@ def execute_request(request_id):
 
             "success.html",
 
-            title="🛡️ Execution Blocked",
+            title="Execution Blocked",
+
+            status_label=service_request.status,
 
             message=(
-                "This action was blocked by the "
-                "security policy engine.<br><br>"
-                f"<strong>Reason:</strong> "
-                f"{policy_result['reason']}"
-            )
+                "This action was blocked by the security policy "
+                "engine before anything was carried out."
+            ),
+
+            error=policy_result["reason"],
+
+            request_id=service_request.id
 
         )
 
 
     # -----------------------------------------------------
-    # POLICY PASSED
+    # POLICY PASSED - RUN THE PLANNED WORKFLOW
+    # -----------------------------------------------------
+
+    outcome = execute_workflow(service_request)
+
+
+    # -----------------------------------------------------
+    # A TOOL REFUSED: THE REQUEST IS NOT EXECUTED
+    # -----------------------------------------------------
+
+    if not outcome["ok"]:
+
+        db.session.commit()
+
+        return render_template(
+            "success.html",
+            title="Execution Failed",
+            status_label="Approved - not executed",
+            message=(
+                "The request was approved, but the workflow could not "
+                "be completed. Nothing has been changed."
+            ),
+            error=outcome["error"],
+            steps=outcome["results"],
+            request_id=service_request.id
+        )
+
+
+    # -----------------------------------------------------
+    # EVERY STEP COMPLETED
     # -----------------------------------------------------
 
     service_request.status = "Executed"
 
     service_request.updated_at = datetime.utcnow()
 
-
-    # -----------------------------------------------------
-    # AUDIT SUCCESSFUL EXECUTION
-    # -----------------------------------------------------
-
-    audit = AuditLog(
-
-        request_id=service_request.id,
-
-        user_id=service_request.user_id,
-
-        event_type="EXECUTION",
-
-        action="Request Executed",
-
-        description=(
-            f"Request #{service_request.id} passed "
-            f"the execution policy and was executed."
-        ),
-
-        actor_type="Controlled Execution",
-
-        status="Executed",
-
-        policy_checked=True,
-
-        approval_required=True,
-
-        approval_status="Approved",
-
-        tool_name="Controlled Execution Engine"
-
-    )
-
-
-    db.session.add(audit)
-
     db.session.commit()
-
-
-    # -----------------------------------------------------
-    # SUCCESS
-    # -----------------------------------------------------
 
     return render_template(
 
         "success.html",
 
-        title="⚡ Action Executed",
+        title="Action Executed",
+
+        status_label="Executed",
 
         message=(
-            "The request passed the security policy "
-            "check and was successfully executed."
-        )
+            "The request passed the security policy check and every "
+            "planned step was carried out."
+        ),
+
+        steps=outcome["results"],
+
+        request_id=service_request.id
 
     )
 
