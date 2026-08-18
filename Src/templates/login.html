@@ -13,7 +13,6 @@
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
 
-    <script src="{{ url_for('static', filename='theme.js') }}"></script>
 
     <style>
 
@@ -120,23 +119,6 @@
         🤖 Human-in-the-Loop AI
     </div>
 
-    <nav>
-
-        <a href="/">
-            Dashboard
-        </a>
-
-        <a href="/register">
-            Register
-        </a>
-
-    </nav>
-
-
-    <div style="display: flex; align-items: center; gap: 8px;">
-        <button class="ai-chat-button" onclick="openAIChat()">💬 AI Agent</button>
-    </div>
-
 </header>
 
 
@@ -182,7 +164,7 @@
             <div class="form-group">
 
                 <label for="username">
-                    Email
+                    Username
                 </label>
 
                 <input

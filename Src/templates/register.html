@@ -12,7 +12,6 @@
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
 
-    <script src="{{ url_for('static', filename='theme.js') }}"></script>
 
     <style>
 
@@ -127,14 +126,8 @@
     </div>
 
     <nav>
-        <a href="/">Dashboard</a>
         <a href="/login">Login</a>
     </nav>
-
-
-    <div style="display: flex; align-items: center; gap: 8px;">
-        <button class="ai-chat-button" onclick="openAIChat()">💬 AI Agent</button>
-    </div>
 
 </header>
 
@@ -286,32 +279,6 @@
     </section>
 
 </main>
-
-
-<!-- AI CHAT MODAL -->
-<div id="ai-chat-modal">
-    <div class="ai-chat-container">
-        <div class="ai-chat-header">
-            <h2>🤖 AI Assistant</h2>
-            <button class="ai-close-btn" onclick="closeAIChat()">✕</button>
-        </div>
-        <div id="ai-chat-box">
-            <div class="ai-message bot-message">
-                <div class="ai-message-content">
-                    Hello! I'm your AI assistant. I can help you with institutional service requests, answer questions about our processes, and guide you through the system. How can I help you today?
-                </div>
-            </div>
-        </div>
-        <div class="ai-chat-footer">
-            <input 
-                type="text" 
-                id="ai-input" 
-                placeholder="Ask me anything..."
-            >
-            <button class="ai-send-btn" onclick="sendAIMessage()">Send</button>
-        </div>
-    </div>
-</div>
 
 
 </body>
