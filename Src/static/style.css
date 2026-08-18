@@ -1598,3 +1598,12 @@ html[data-theme="light"] .empty-state {
     font-size: 0.85rem;
     color: var(--muted);
 }
+
+/* Explanatory text under a form field. */
+.field-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--muted);
+}

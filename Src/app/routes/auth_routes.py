@@ -35,7 +35,7 @@ def register():
     name = data.get("name", "").strip()
     email = data.get("email", "").strip().lower()
     password = data.get("password", "")
-    student_id = data.get("student_id", "").strip()
+    registration_number = data.get("registration_number", "").strip()
 
     if not name:
         return jsonify({
@@ -75,7 +75,7 @@ def register():
         name=name,
         email=email,
         role="STUDENT",
-        student_id=student_id or None
+        registration_number=registration_number or None
     )
 
     user.set_password(password)
@@ -192,7 +192,7 @@ def current_user():
             "name": user.name,
             "email": user.email,
             "role": user.role,
-            "student_id": user.student_id,
+            "registration_number": user.registration_number,
             "department": user.department
         }
     })

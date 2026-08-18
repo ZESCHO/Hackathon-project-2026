@@ -60,6 +60,10 @@ def main():
     # the reasoning, so keep the suite fast.
     os.environ["OLLAMA_THINK"] = "0"
 
+    # The admin password is generated on first run and never printed
+    # again, so the suite supplies its own.
+    os.environ["ADMIN_PASSWORD"] = "SmokeTest!2026"
+
     module = runpy.run_path("app.py", run_name="not_main")
 
     app = module["app"]
@@ -101,11 +105,67 @@ def main():
     )
 
     login = client.post("/login", data={
-        "email": "admin@secureai.com",
-        "password": "Admin@123"
+        "username": "admin",
+        "password": "SmokeTest!2026"
     })
 
     check("admin can log in", login.status_code == 302)
+
+    check(
+        "wrong password is rejected",
+        client.post("/login", data={
+            "username": "admin",
+            "password": "not-the-password"
+        }).status_code == 302
+    )
+
+    # Registration keys on username and registration number.
+    registered = client.post("/register", data={
+        "username": "smoketest.student",
+        "registration_number": "25X000A01",
+        "password": "StudentPass!1",
+        "confirm_password": "StudentPass!1"
+    })
+
+    check("a student can register", registered.status_code == 302)
+
+    from app.models.user import User
+
+    with app.app_context():
+        created = User.query.filter_by(
+            username="smoketest.student"
+        ).first()
+
+        check("registered account is stored", created is not None)
+        check(
+            "registration number is normalised",
+            created is not None
+            and created.registration_number == "25X000A01"
+        )
+
+    check(
+        "duplicate username is refused",
+        client.post("/register", data={
+            "username": "SmokeTest.Student",
+            "registration_number": "25X000A02",
+            "password": "StudentPass!1",
+            "confirm_password": "StudentPass!1"
+        }).status_code == 302
+    )
+
+    with app.app_context():
+        check(
+            "duplicate did not create a second account",
+            User.query.filter(
+                User.username.ilike("smoketest.student")
+            ).count() == 1
+        )
+
+    # Sign back in as the administrator for the rest of the suite.
+    client.post("/login", data={
+        "username": "admin",
+        "password": "SmokeTest!2026"
+    })
 
     # ----------------------------------------------------------
     section("GROUNDED ANSWERING")

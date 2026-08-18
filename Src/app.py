@@ -1,3 +1,5 @@
+import re
+import secrets
 from datetime import datetime, timedelta
 import requests
 
@@ -24,7 +26,7 @@ from app.ai_agent import understand_request
 from app.models import db, AuditLog, User
 from app.models.request import ServiceRequest
 from app.models.workflow import Workflow
-from app.db_migrate import sync_columns
+from app.db_migrate import sync_columns, migrate_users
 from app.workflows.executor import create_workflow, execute_workflow
 from app import trace
 
@@ -37,6 +39,15 @@ app = Flask(__name__)
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "secure-agentic-ai-development-key"
+)
+
+# Without this a session cookie is discarded when the browser closes,
+# so users had to sign in on every visit.
+app.permanent_session_lifetime = timedelta(days=14)
+
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax"
 )
 
 # Only these categories may result in a filed service request.
@@ -233,6 +244,13 @@ db.init_app(app)
 # =========================================================
 
 with app.app_context():
+
+    # Rebuild the users table onto username/registration_number before
+    # create_all(), so the model and the table agree.
+    users_migration = migrate_users(db)
+
+    if users_migration:
+        print("Database:", users_migration)
 
     db.create_all()
 
@@ -824,7 +842,7 @@ def laboratory_book():
 
     # Identity is taken from the session, not the form.
     name = user.name
-    student_id = user.student_id or "Not on record"
+    registration_number = user.registration_number
     laboratory_name = request.form.get("laboratory", "").strip()
     booking_date = request.form.get("date", "").strip()
     booking_time = request.form.get("time", "").strip()
@@ -837,7 +855,7 @@ def laboratory_book():
             f"{laboratory_name} on "
             f"{booking_date} from {booking_time}. "
             f"Student: {name}. "
-            f"Student ID: {student_id}. "
+            f"Registration No: {registration_number}. "
             f"Purpose: {purpose}"
         ),
         fields={
@@ -845,7 +863,7 @@ def laboratory_book():
             "booking_date": booking_date,
             "booking_time": booking_time,
             "purpose": purpose,
-            "student_id": student_id,
+            "registration_number": registration_number,
             "reported_by": name
         },
         category="laboratory"
@@ -948,7 +966,7 @@ def certificate_request():
     # else's name.
     student_name = user.name
 
-    student_id = user.student_id or "Not on record"
+    registration_number = user.registration_number
 
     certificate_type = request.form.get(
         "certificate_type",
@@ -991,14 +1009,14 @@ def certificate_request():
 
         description=(
             f"{certificate_type} for {student_name}. "
-            f"Student ID: {student_id}. "
+            f"Registration No: {registration_number}. "
             f"Purpose: {purpose}"
         ),
 
         fields={
             "certificate_type": certificate_type,
             "purpose": purpose,
-            "student_id": student_id,
+            "registration_number": registration_number,
             "reported_by": student_name
         },
 
@@ -1022,7 +1040,7 @@ def certificate_request():
 
     print("Student:", student_name)
 
-    print("Student ID:", student_id)
+    print("Registration No:", registration_number)
 
     print("Certificate:", certificate_type)
 
@@ -1740,62 +1758,57 @@ def register():
     if request.method == "GET":
         return render_template("register.html")
 
-    # Get form data
-    name = request.form.get("name", "").strip()
-    email = request.form.get("email", "").strip().lower()
-    student_id = request.form.get("student_id", "").strip()
+    username = request.form.get("username", "").strip()
+
+    registration_number = request.form.get(
+        "registration_number", ""
+    ).strip().upper()
+
     password = request.form.get("password", "")
-    confirm_password = request.form.get(
-        "confirm_password",
-        ""
-    )
+
+    confirm_password = request.form.get("confirm_password", "")
 
     # --------------------------------------------------------
     # VALIDATION
     # --------------------------------------------------------
 
-    if not name or not email or not student_id or not password:
-        flash("Please fill in all required fields.")
+    if not username or not registration_number or not password:
+        flash("Please fill in all fields.")
+        return redirect(url_for("register"))
+
+    if len(username) < 3:
+        flash("Username must be at least 3 characters.")
+        return redirect(url_for("register"))
+
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", username):
+        flash(
+            "Username may only contain letters, numbers, "
+            "dots, dashes and underscores."
+        )
         return redirect(url_for("register"))
 
     if password != confirm_password:
         flash("Passwords do not match.")
         return redirect(url_for("register"))
 
-    if len(password) < 6:
-        flash("Password must contain at least 6 characters.")
+    if len(password) < 8:
+        flash("Password must contain at least 8 characters.")
         return redirect(url_for("register"))
 
     # --------------------------------------------------------
-    # CHECK EXISTING EMAIL
+    # UNIQUENESS
     # --------------------------------------------------------
 
-    existing_email = User.query.filter_by(
-        email=email
-    ).first()
+    if User.query.filter(
+        db.func.lower(User.username) == username.lower()
+    ).first():
+        flash("That username is already taken.")
+        return redirect(url_for("register"))
 
-    if existing_email:
-
-        flash(
-            "An account with this email already exists."
-        )
-
-        return redirect(url_for("login"))
-
-    # --------------------------------------------------------
-    # CHECK EXISTING STUDENT ID
-    # --------------------------------------------------------
-
-    existing_student = User.query.filter_by(
-        student_id=student_id
-    ).first()
-
-    if existing_student:
-
-        flash(
-            "This Student ID is already registered."
-        )
-
+    if User.query.filter_by(
+        registration_number=registration_number
+    ).first():
+        flash("That registration number is already registered.")
         return redirect(url_for("register"))
 
     # --------------------------------------------------------
@@ -1803,24 +1816,17 @@ def register():
     # --------------------------------------------------------
 
     new_user = User(
-
-        name=name,
-
-        email=email,
-
-        student_id=student_id,
-
+        username=username,
+        registration_number=registration_number,
+        name=username,
         role="STUDENT",
-
         is_active=True
-
     )
 
     # NEVER store the password directly
     new_user.set_password(password)
 
     db.session.add(new_user)
-
     db.session.commit()
 
     print()
@@ -1828,18 +1834,16 @@ def register():
     print("NEW USER REGISTERED")
     print("====================================")
     print("User ID:", new_user.id)
-    print("Name:", new_user.name)
-    print("Email:", new_user.email)
-    print("Student ID:", new_user.student_id)
+    print("Username:", new_user.username)
+    print("Registration No:", new_user.registration_number)
     print("Role:", new_user.role)
     print("====================================")
     print()
 
-    flash(
-        "Account created successfully. Please login."
-    )
+    flash("Account created successfully. Please login.")
 
     return redirect(url_for("login"))
+
 
 # ============================================================
 # LOGIN
@@ -1852,59 +1856,32 @@ def login():
     if request.method == "GET":
         return render_template("login.html")
 
-    # Get login information
-    email = request.form.get(
-        "email",
-        ""
-    ).strip().lower()
+    identifier = request.form.get("username", "").strip()
 
-    password = request.form.get(
-        "password",
-        ""
-    )
+    password = request.form.get("password", "")
 
-    # --------------------------------------------------------
-    # BASIC VALIDATION
-    # --------------------------------------------------------
-
-    if not email or not password:
-
-        flash(
-            "Please enter your email and password."
-        )
-
+    if not identifier or not password:
+        flash("Please enter your username and password.")
         return redirect(url_for("login"))
 
-    # --------------------------------------------------------
-    # FIND USER
-    # --------------------------------------------------------
-
-    user = User.query.filter_by(
-        email=email
+    # Either identifier works, so nobody is locked out for using the
+    # one they happen to remember.
+    user = User.query.filter(
+        db.or_(
+            db.func.lower(User.username) == identifier.lower(),
+            User.registration_number == identifier.upper(),
+            db.func.lower(User.email) == identifier.lower()
+        )
     ).first()
 
-    # --------------------------------------------------------
-    # VERIFY USER
-    # --------------------------------------------------------
-
+    # The same message either way: saying which half was wrong tells an
+    # attacker which usernames exist.
     if user is None or not user.check_password(password):
-
-        flash(
-            "Invalid email or password."
-        )
-
+        flash("Invalid username or password.")
         return redirect(url_for("login"))
 
-    # --------------------------------------------------------
-    # CHECK ACCOUNT STATUS
-    # --------------------------------------------------------
-
     if not user.is_active:
-
-        flash(
-            "Your account has been disabled."
-        )
-
+        flash("Your account has been disabled.")
         return redirect(url_for("login"))
 
     # --------------------------------------------------------
@@ -1913,26 +1890,29 @@ def login():
 
     session.clear()
 
+    # Keep the sign-in across browser restarts.
+    session.permanent = True
+
     session["user_id"] = user.id
     session["user_name"] = user.name
     session["user_role"] = user.role
     session["user_email"] = user.email
+    session["registration_number"] = user.registration_number
 
     print()
     print("====================================")
     print("USER LOGIN")
     print("====================================")
     print("User ID:", user.id)
-    print("Name:", user.name)
+    print("Username:", user.username)
     print("Role:", user.role)
     print("====================================")
     print()
 
-    flash(
-        f"Welcome back, {user.name}!"
-    )
+    flash(f"Welcome back, {user.name}!")
 
     return redirect(url_for("home"))
+
 
 # ============================================================
 # LOGOUT
@@ -1960,34 +1940,50 @@ def logout():
 # =========================================================
 
 def create_default_admin():
+    """
+    Ensure an administrator account exists.
+
+    The password is only set when the account is first created, or when
+    ADMIN_PASSWORD is supplied. Resetting it on every start would undo
+    any password the administrator had chosen.
+    """
 
     with app.app_context():
 
-        admin = User.query.filter_by(
-            email="admin@secureai.com"
-        ).first()
+        admin = User.query.filter_by(username="admin").first()
+
+        requested_password = os.environ.get("ADMIN_PASSWORD")
 
         if admin is None:
 
+            # Fall back to the pre-migration account if it is still
+            # around under its old identity.
+            admin = User.query.filter_by(role="ADMIN").first()
+
+        if admin is None:
+
+            password = requested_password or secrets.token_urlsafe(12)
+
             admin = User(
+                username="admin",
+                registration_number="ADMIN-0001",
                 name="System Administrator",
-                email="admin@secureai.com",
                 role="ADMIN",
                 is_active=True
             )
 
-            admin.set_password("Admin@123")
+            admin.set_password(password)
 
             db.session.add(admin)
             db.session.commit()
 
             print()
             print("====================================")
-            print("✅ ADMIN ACCOUNT CREATED")
+            print("ADMIN ACCOUNT CREATED")
             print("====================================")
-            print("Email: admin@secureai.com")
-            print("Password: Admin@123")
-            print("Role: ADMIN")
+            print("Username:", admin.username)
+            print("Password:", password)
+            print("Save this now; it is not shown again.")
             print("====================================")
             print()
 
@@ -1996,17 +1992,24 @@ def create_default_admin():
             admin.role = "ADMIN"
             admin.is_active = True
 
-            admin.set_password("Admin@123")
+            if not admin.username:
+                admin.username = "admin"
+
+            if requested_password:
+                admin.set_password(requested_password)
 
             db.session.commit()
 
             print()
             print("====================================")
-            print("✅ ADMIN ACCOUNT READY")
+            print("ADMIN ACCOUNT READY")
             print("====================================")
-            print("Email: admin@secureai.com")
-            print("Password: Admin@123")
-            print("Role: ADMIN")
+            print("Username:", admin.username)
+            print(
+                "Password: unchanged"
+                if not requested_password
+                else "Password: reset from ADMIN_PASSWORD"
+            )
             print("====================================")
             print()
 

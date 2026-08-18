@@ -180,51 +180,47 @@
 
             <div class="form-group">
 
-                <label for="name">
-                    Full Name
+                <label for="username">
+                    Username
                 </label>
 
                 <input
                     type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Enter your full name"
+                    id="username"
+                    name="username"
+                    placeholder="Choose a username"
+                    pattern="[A-Za-z0-9._\-]+"
+                    minlength="3"
+                    autocomplete="username"
                     required
                 >
+
+                <small class="field-hint">
+                    You will sign in with this. Letters, numbers,
+                    dots, dashes and underscores only.
+                </small>
 
             </div>
 
 
             <div class="form-group">
 
-                <label for="student_id">
-                    Student ID
+                <label for="registration_number">
+                    Registration Number
                 </label>
 
                 <input
                     type="text"
-                    id="student_id"
-                    name="student_id"
-                    placeholder="Enter your student ID"
+                    id="registration_number"
+                    name="registration_number"
+                    placeholder="e.g. 25E120A42"
                     required
                 >
 
-            </div>
-
-
-            <div class="form-group">
-
-                <label for="email">
-                    Email
-                </label>
-
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    required
-                >
+                <small class="field-hint">
+                    Your institutional registration number. Requests
+                    are filed against it, so it cannot be changed later.
+                </small>
 
             </div>
 
@@ -240,7 +236,8 @@
                     id="password"
                     name="password"
                     placeholder="Create a password"
-                    minlength="6"
+                    minlength="8"
+                    autocomplete="new-password"
                     required
                 >
 
@@ -258,7 +255,8 @@
                     id="confirm_password"
                     name="confirm_password"
                     placeholder="Confirm your password"
-                    minlength="6"
+                    minlength="8"
+                    autocomplete="new-password"
                     required
                 >
 
