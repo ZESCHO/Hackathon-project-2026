@@ -374,9 +374,7 @@
                             Submitted:
                         </strong>
 
-                        {{ item.created_at.strftime(
-                            "%d %b %Y, %I:%M %p"
-                        ) }}
+                        {{ item.created_at|localdatetime }}
 
                     </p>
 
@@ -394,9 +392,7 @@
                             Last Updated:
                         </strong>
 
-                        {{ item.updated_at.strftime(
-                            "%d %b %Y, %I:%M %p"
-                        ) }}
+                        {{ item.updated_at|localdatetime }}
 
                     </p>
 

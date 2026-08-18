@@ -29,6 +29,12 @@ from app.models.workflow import Workflow
 from app.models.approval import Approval
 from app.db_migrate import sync_columns, migrate_users, migrate_approvals
 from app.workflows.executor import create_workflow, execute_workflow
+from app.formatting import (
+    local_datetime,
+    local_date,
+    local_time,
+    time_ago
+)
 from app.security import (
     can,
     can_act_on,
@@ -193,7 +199,8 @@ def chat():
             description=description,
             fields=fields,
             category=category,
-            confidence=user_request.get("confidence_score", 1.0)
+            confidence=user_request.get("confidence_score", 1.0),
+            source="assistant"
         )
 
         user_request["request_id"] = service_request.id
@@ -688,7 +695,8 @@ def create_approval_request(
     description,
     fields=None,
     category=None,
-    confidence=1.0
+    confidence=1.0,
+    source="form"
 ):
 
     if not user:
@@ -713,6 +721,8 @@ def create_approval_request(
         confidence=confidence,
 
         requires_approval=True,
+
+        source=source,
 
         fields_json=fields
 
@@ -1085,6 +1095,13 @@ def certificate_request():
 # ============================================================
 # ADMIN / REVIEWER ACCESS CONTROL
 # ============================================================
+
+# Timestamps are stored in UTC and read in the institution's timezone.
+app.jinja_env.filters["localdatetime"] = local_datetime
+app.jinja_env.filters["localdate"] = local_date
+app.jinja_env.filters["localtime"] = local_time
+app.jinja_env.filters["timeago"] = time_ago
+
 
 @app.context_processor
 def inject_permissions():
@@ -1560,7 +1577,8 @@ def audit():
                 record.tool_name,
 
             "timestamp":
-                record.timestamp.strftime(
+                local_datetime(
+                    record.timestamp,
                     "%d %b %Y, %I:%M:%S %p"
                 )
 

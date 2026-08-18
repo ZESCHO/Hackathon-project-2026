@@ -1567,21 +1567,65 @@ html[data-theme="light"] .empty-state {
     font-weight: 700;
 }
 
-.plan-steps {
-    margin: 10px 0 0 18px;
-    font-size: 0.9rem;
-    line-height: 1.7;
+.plan-intro {
+    margin: 6px 0 12px !important;
+    font-size: 0.85rem !important;
+    color: var(--muted) !important;
 }
 
-.plan-step-human {
+.plan-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.9rem;
+}
+
+.plan-step {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 7px 0;
+    line-height: 1.6;
+}
+
+.plan-mark {
+    flex: 0 0 auto;
+    min-width: 46px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.plan-step-done .plan-mark {
+    background: rgba(148, 163, 184, 0.16);
+    color: var(--muted);
+}
+
+.plan-step-gate .plan-mark {
+    background: rgba(125, 211, 252, 0.2);
     color: var(--primary);
+}
+
+.plan-step-pending .plan-mark {
+    background: rgba(167, 139, 250, 0.16);
+    color: #c4b5fd;
+}
+
+.plan-step-gate .plan-text {
+    color: var(--text-strong);
     font-weight: 600;
 }
 
-.plan-actor {
-    font-size: 0.75rem;
+.plan-step em {
+    display: block;
+    font-style: normal;
+    font-size: 0.76rem;
     color: var(--muted);
-    margin-left: 6px;
+    margin-top: 2px;
 }
 
 .workflow-step.step-rolled_back {
@@ -1802,4 +1846,83 @@ html[data-theme="light"] .password-toggle {
     border-radius: 999px;
     background: rgba(167, 139, 250, 0.12);
     border: 1px solid rgba(167, 139, 250, 0.25);
+}
+
+/* Request details as labelled values rather than one run-on line. */
+.request-fields {
+    display: grid;
+    grid-template-columns: minmax(110px, max-content) 1fr;
+    gap: 8px 18px;
+    margin: 14px 0 0;
+}
+
+.request-fields dt {
+    color: var(--muted);
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+}
+
+.request-fields dd {
+    margin: 0;
+    color: var(--text);
+    word-break: break-word;
+}
+
+.request-raw {
+    margin-top: 12px;
+    color: var(--muted);
+}
+
+@media (max-width: 640px) {
+    .request-fields {
+        grid-template-columns: 1fr;
+        gap: 2px 0;
+    }
+    .request-fields dd {
+        margin-bottom: 10px;
+    }
+}
+
+/* AI analysis findings */
+.ai-finding {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(125, 211, 252, 0.05);
+    border-left: 3px solid var(--primary);
+}
+
+.ai-finding strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text-strong);
+}
+
+.ai-finding p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.ai-finding p.ai-blocking {
+    color: var(--danger);
+}
+
+.ai-source {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.14);
+    font-family: ui-monospace, monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+}
+
+.ai-box-note {
+    margin-top: 8px !important;
+    font-size: 0.76rem !important;
+    line-height: 1.5 !important;
+    color: var(--muted) !important;
 }

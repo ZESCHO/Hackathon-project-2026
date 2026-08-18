@@ -1015,9 +1015,7 @@
                             🕐 Submitted:
                         </strong>
 
-                        {{ item.created_at.strftime(
-                            "%d %b %Y, %I:%M %p"
-                        ) }}
+                        {{ item.created_at|localdatetime }}
 
                     </p>
 
@@ -1033,13 +1031,20 @@
 
                 <div class="request-description">
 
-                    <strong>
-                        📋 Request Details
-                    </strong>
+                    <strong>Request Details</strong>
 
-                    <br><br>
-
-                    {{ item.request_text }}
+                    {% if item.fields_json %}
+                    <dl class="request-fields">
+                        {% for key, value in item.fields_json.items() %}
+                        {% if value %}
+                        <dt>{{ key|replace("_", " ")|title }}</dt>
+                        <dd>{{ value }}</dd>
+                        {% endif %}
+                        {% endfor %}
+                    </dl>
+                    {% else %}
+                    <p class="request-raw">{{ item.request_text }}</p>
+                    {% endif %}
 
                 </div>
 
@@ -1071,12 +1076,12 @@
                 {% if plan.policy_notes %}
                 <div class="policy-panel">
 
-                    <strong>📕 Policy Findings</strong>
+                    <strong>Policy the agent applied</strong>
 
                     {% for note in plan.policy_notes %}
                     <div class="policy-note {% if note.blocking %}policy-note-blocking{% endif %}">
 
-                        <span class="policy-source">[{{ note.source }}]</span>
+                        <span class="policy-source">{{ note.source }}</span>
 
                         {% if note.blocking %}
                         <span class="policy-flag">Conflict</span>
@@ -1090,17 +1095,51 @@
                 </div>
                 {% endif %}
 
+                {% set gate = plan.steps
+                    | selectattr("actor", "equalto", "HUMAN")
+                    | map(attribute="step") | first %}
+
                 <div class="plan-panel">
 
-                    <strong>🧭 Planned Steps</strong>
+                    <strong>What approving this will do</strong>
+
+                    <p class="plan-intro">
+                        The agent planned these steps before anything
+                        happened, so you can see the whole sequence
+                        before authorising any of it.
+                    </p>
 
                     <ol class="plan-steps">
                         {% for step in plan.steps %}
-                        <li class="plan-step plan-step-{{ step.actor|lower }}">
-                            {{ step.description }}
-                            {% if step.actor == "HUMAN" %}
-                            <span class="plan-actor">requires a human</span>
-                            {% endif %}
+
+                        {% if gate and step.step < gate %}
+                            {% set state = "done" %}
+                        {% elif gate and step.step == gate %}
+                            {% set state = "gate" %}
+                        {% else %}
+                            {% set state = "pending" %}
+                        {% endif %}
+
+                        <li class="plan-step plan-step-{{ state }}">
+
+                            <span class="plan-mark">
+                                {% if state == "done" %}done
+                                {% elif state == "gate" %}you
+                                {% else %}then{% endif %}
+                            </span>
+
+                            <span class="plan-text">
+                                {{ step.description }}
+                                {% if state == "done" %}
+                                <em>already completed when the request
+                                    was filed</em>
+                                {% elif state == "gate" %}
+                                <em>this decision</em>
+                                {% else %}
+                                <em>runs only if you approve</em>
+                                {% endif %}
+                            </span>
+
                         </li>
                         {% endfor %}
                     </ol>
@@ -1215,40 +1254,46 @@
                     <div class="ai-analysis-box">
 
                         <span>
-                            AI Confidence
+                            {% if item.source == "assistant" %}
+                                Understanding Confidence
+                            {% else %}
+                                Source
+                            {% endif %}
                         </span>
 
+                        {% if item.source != "assistant" %}
+
+                        <strong>Service form</strong>
+
+                        <p class="ai-box-note">
+                            Filled in by the student, not interpreted.
+                        </p>
+
+                        {% elif item.confidence is not none %}
 
                         <strong>
-
-                            {% if item.confidence is not none %}
-
-                                {{ "%.0f"|format(
-                                    item.confidence * 100
-                                ) }}%
-
-                            {% else %}
-
-                                Not Available
-
-                            {% endif %}
-
+                            {{ "%.0f"|format(item.confidence * 100) }}%
                         </strong>
 
-
                         <div class="confidence-bar">
-
                             <div
                                 class="confidence-fill"
-                                style="
-                                    width:
-                                    {{ (
-                                        item.confidence * 100
-                                    ) if item.confidence is not none else 0 }}%;
-                                "
+                                style="width: {{ (item.confidence * 100)|round|int }}%;"
                             ></div>
-
                         </div>
+
+                        <p class="ai-box-note">
+                            How well the message matched what this
+                            request needs. Anything below 55% is not
+                            filed at all; the student is asked to
+                            restate it.
+                        </p>
+
+                        {% else %}
+
+                        <strong>Not recorded</strong>
+
+                        {% endif %}
 
                     </div>
 
@@ -1256,79 +1301,60 @@
 
                     <!-- APPROVAL REQUIREMENT -->
 
-                    <div class="ai-recommendation">
+                    <div class="ai-finding">
 
-                        <strong>
-                            🛡️ Approval Requirement:
-                        </strong>
+                            <strong>What the assistant extracted</strong>
 
-                        <br>
+                            {% if item.source == "assistant" %}
+                            <p>
+                                Collected through conversation. Values
+                                the model could not trace back to the
+                                student's own words were rejected rather
+                                than guessed, so anything shown here was
+                                actually stated.
+                            </p>
+                            {% else %}
+                            <p>
+                                Submitted directly through the service
+                                form. No AI classification was involved
+                                in this request.
+                            </p>
+                            {% endif %}
 
+                        </div>
 
-                        {% if item.requires_approval %}
+                        {% set plan = request_plans.get(item.id) %}
 
-                            Human approval is required before
-                            this request can proceed to execution.
+                        {% if plan and plan.policy_notes %}
+                        <div class="ai-finding">
 
-                        {% else %}
+                            <strong>Policy consulted</strong>
 
-                            This request does not currently
-                            require human approval.
+                            {% for note in plan.policy_notes %}
+                            <p class="{% if note.blocking %}ai-blocking{% endif %}">
+                                {% if note.blocking %}Conflict:{% endif %}
+                                {{ note.message }}
+                                <span class="ai-source">{{ note.source }}</span>
+                            </p>
+                            {% endfor %}
 
+                        </div>
                         {% endif %}
 
-                    </div>
+                        <div class="ai-finding">
 
+                            <strong>Why a human decides this</strong>
 
+                            <p>
+                                The assistant classifies and plans. It
+                                cannot approve or execute: those are
+                                separate endpoints that check your
+                                permission and your department every
+                                time, not settings this analysis can
+                                change.
+                            </p>
 
-                    <!-- AI RECOMMENDATION -->
-
-                    <div class="ai-recommendation">
-
-                        <strong>
-                            🧠 AI Recommendation:
-                        </strong>
-
-                        <br>
-
-                        {% if item.requires_approval %}
-
-                            The request has been classified by
-                            the AI system and requires authorized
-                            human review before any consequential
-                            action is performed.
-
-                        {% else %}
-
-                            The request has been analyzed by the
-                            AI system and does not currently require
-                            human approval.
-
-                        {% endif %}
-
-                    </div>
-
-
-
-                    <!-- SAFETY POLICY -->
-
-                    <div class="ai-recommendation">
-
-                        <strong>
-                            🔐 Safety Policy:
-                        </strong>
-
-                        <br>
-
-                        AI analysis is advisory only.
-                        Human authorization is required before
-                        consequential institutional actions can
-                        be executed.
-
-                    </div>
-
-
-                </div>
+                        </div>
 
 
 

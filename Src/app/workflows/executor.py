@@ -79,14 +79,13 @@ def create_workflow(service_request, category, fields):
     # dropping everything into one queue.
     department = plan["derived"].get("department") or "Approval Center"
 
-    routing_reason = next(
-        (
-            f"[{note['source']}] {note['title']}"
-            for note in plan["policy_notes"]
-            if note.get("source")
-        ),
-        None
-    )
+    # A sentence a reviewer can read, not a snippet id.
+    routing_reason = plan["derived"].get("routing_reason")
+
+    source = plan["derived"].get("routing_source")
+
+    if routing_reason and source:
+        routing_reason = f"{routing_reason} (policy {source})"
 
     approval = Approval(
         request_id=service_request.id,

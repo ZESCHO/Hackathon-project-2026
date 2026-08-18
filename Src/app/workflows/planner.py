@@ -238,7 +238,19 @@ def _certificate_policy(fields):
             "Student Affairs."
         ))
 
-    return notes, {"department": department}
+    return notes, {
+        "department": department,
+        "routing_reason": (
+            f"{certificate_type.title() or 'This certificate'} is "
+            f"issued by the {department}."
+        ),
+        "routing_source": (
+            "cert-003" if "character" in certificate_type
+            else CERTIFICATE_SOURCE_CLEARANCE
+            if any(w in certificate_type for w in CLEARANCE_CERTIFICATES)
+            else "cert-004"
+        )
+    }
 
 
 def _maintenance_policy(fields):
@@ -275,7 +287,12 @@ def _maintenance_policy(fields):
     return notes, {
         "priority": priority,
         "sla": target,
-        "department": department
+        "department": department,
+        "routing_reason": (
+            f"Reported fault handled by {department}. "
+            f"{priority.title()} priority, target {target}."
+        ),
+        "routing_source": MAINTENANCE_SOURCE_SLA
     }
 
 
@@ -300,6 +317,11 @@ def _laboratory_policy(fields, now=None):
 
         derived["restricted"] = True
         derived["department"] = "Faculty Co-signature (Research Labs)"
+        derived["routing_reason"] = (
+            f"{laboratory} is a research laboratory, so a faculty "
+            f"co-signature is required in addition to the booking."
+        )
+        derived["routing_source"] = LAB_SOURCE_RESTRICTED
 
         notes.append(_note(
             LAB_SOURCE_RESTRICTED,
@@ -312,6 +334,11 @@ def _laboratory_policy(fields, now=None):
     else:
         derived["restricted"] = False
         derived["department"] = "Laboratory Administration"
+        derived["routing_reason"] = (
+            "Standard teaching laboratory booking, handled by "
+            "Laboratory Administration."
+        )
+        derived["routing_source"] = LAB_SOURCE_ADVANCE
 
     # ---- advance notice ----
 
@@ -376,7 +403,18 @@ def _grievance_policy(fields):
     return notes, {
         "priority": priority,
         "escalation_level": escalation_level,
-        "department": department
+        "department": department,
+        "routing_reason": (
+            f"{priority.title()} priority grievance for the "
+            f"{department}."
+            + (
+                " Safety related, so escalated within 24 hours."
+                if escalation_level else ""
+            )
+        ),
+        "routing_source": (
+            GRIEVANCE_SOURCE_PRIORITY if escalation_level else "griev-001"
+        )
     }
 
 

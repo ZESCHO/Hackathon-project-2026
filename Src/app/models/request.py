@@ -49,6 +49,15 @@ class ServiceRequest(db.Model):
         default=False
     )
 
+    # How the request reached us. A form submission has no AI
+    # classification behind it, and the review panel must not imply
+    # one.
+    source = db.Column(
+        db.String(20),
+        nullable=True,
+        default="form"
+    )
+
     # The structured values collected for this request, keyed by the
     # canonical field names in app/ai_agent.py. Execution reads these
     # rather than trying to parse them back out of request_text.
