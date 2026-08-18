@@ -6,6 +6,9 @@ holds authorization only: what a signed-in user is allowed to do.
 """
 
 from app.security.permissions import (
+    can_act_on,
+    is_master_reviewer,
+    reviewer_department,
     ROLE_HIERARCHY,
     ROLE_PERMISSIONS,
     can,
@@ -17,6 +20,9 @@ from app.security.permissions import (
 
 
 __all__ = [
+    "can_act_on",
+    "is_master_reviewer",
+    "reviewer_department",
     "ROLE_HIERARCHY",
     "ROLE_PERMISSIONS",
     "can",

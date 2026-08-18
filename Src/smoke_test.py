@@ -537,6 +537,113 @@ def main():
         )
 
     # ----------------------------------------------------------
+    section("DEPARTMENT SCOPE")
+
+    from app.models.user import User as UserModel
+    from app.security import can_act_on, is_master_reviewer
+
+    # Two reviewers in different offices.
+    with app.app_context():
+        for username, department in [
+            ("scope.dean", "Dean of Student Affairs"),
+            ("scope.electrical", "Electrical"),
+        ]:
+            if not UserModel.query.filter_by(username=username).first():
+                reviewer = UserModel(
+                    username=username,
+                    registration_number=f"REV-{username[-4:]}",
+                    name=username,
+                    role="REVIEWER",
+                    department=department,
+                    is_active=True
+                )
+                reviewer.set_password("ReviewerPass!1")
+                db.session.add(reviewer)
+        db.session.commit()
+
+    # A grievance for the Dean and a maintenance ticket for Electrical.
+    client.post("/grievance/submit", data={
+        "category": "Harassment", "priority": "High",
+        "subject": "Ragging",
+        "description": "seniors threatened me in the hostel"
+    })
+    with app.app_context():
+        dean_request = ServiceRequest.query.order_by(
+            ServiceRequest.id.desc()
+        ).first().id
+
+    client.post("/maintenance/request", data={
+        "location": "Z block", "room": "1", "category": "Electrical",
+        "priority": "High", "description": "socket sparking"
+    })
+    with app.app_context():
+        electrical_request = ServiceRequest.query.order_by(
+            ServiceRequest.id.desc()
+        ).first().id
+
+    dean = app.test_client()
+    dean.post("/login", data={
+        "username": "scope.dean", "password": "ReviewerPass!1"
+    })
+
+    check(
+        "a reviewer lands on the approval queue",
+        dean.post("/login", data={
+            "username": "scope.dean", "password": "ReviewerPass!1"
+        }).headers.get("Location", "").endswith("/approval")
+    )
+
+    # The control: posting another office's request id directly.
+    with app.app_context():
+        before = db.session.get(ServiceRequest, electrical_request).status
+
+    dean.post(f"/approval/{electrical_request}/approve")
+
+    with app.app_context():
+        check(
+            "a reviewer cannot approve another department's request",
+            db.session.get(
+                ServiceRequest, electrical_request
+            ).status == before,
+            "status changed"
+        )
+
+    tickets = count(MaintenanceTicket)
+    dean.post(f"/execution/{electrical_request}/execute")
+
+    check(
+        "a reviewer cannot execute another department's request",
+        count(MaintenanceTicket) == tickets,
+        "a record was created"
+    )
+
+    # And can act on their own.
+    dean.post(f"/approval/{dean_request}/approve")
+
+    with app.app_context():
+        check(
+            "a reviewer can approve their own department's request",
+            db.session.get(
+                ServiceRequest, dean_request
+            ).status == "Approved"
+        )
+
+    # A reviewer whose department was never set must fail closed.
+    class Unassigned:
+        role = "REVIEWER"
+        department = None
+        is_active = True
+
+    check(
+        "a reviewer with no department is not a master",
+        is_master_reviewer(Unassigned()) is False
+    )
+    check(
+        "a reviewer with no department can act on nothing",
+        can_act_on(Unassigned(), "Electrical") is False
+    )
+
+    # ----------------------------------------------------------
     section("AUTHORIZATION")
 
     # A student holds none of the reviewer permissions. The POST

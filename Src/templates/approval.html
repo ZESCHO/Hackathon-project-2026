@@ -818,13 +818,40 @@
     <section class="hero approval-hero">
 
         <h1>
-            🔐 Human Approval Center
+            {% if is_master %}
+                Human Approval Center
+            {% else %}
+                {{ scope or "Your" }} Queue
+            {% endif %}
         </h1>
 
         <p>
-            Review and authorize consequential actions
-            before they are executed.
+            {% if is_master %}
+                Overseeing every department. Review and authorize
+                consequential actions before they are executed.
+            {% else %}
+                Requests routed to {{ scope or "your department" }}.
+                You can only act on these.
+            {% endif %}
         </p>
+
+        <p class="queue-count">
+            {% if pending_count %}
+                <strong>{{ pending_count }}</strong>
+                awaiting your decision
+            {% else %}
+                Nothing awaiting your decision
+            {% endif %}
+        </p>
+
+        {% if is_master and departments %}
+        <p class="queue-departments">
+            Pending across:
+            {% for department in departments %}
+            <span class="queue-department">{{ department }}</span>
+            {% endfor %}
+        </p>
+        {% endif %}
 
     </section>
 

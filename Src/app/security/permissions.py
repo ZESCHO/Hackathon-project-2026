@@ -131,3 +131,60 @@ def outranks(role, other):
     order = {name: index for index, name in enumerate(ROLE_HIERARCHY)}
 
     return order[normalize_role(role)] > order[normalize_role(other)]
+
+
+# =========================================================
+# DEPARTMENT SCOPE
+# =========================================================
+
+# Only this role oversees every department. Master status is decided
+# by the role, never by an empty department: a reviewer whose
+# department was never filled in is a misconfigured account, and
+# reading that as "sees everything" would hand it the whole system.
+MASTER_ROLE = "ADMIN"
+
+
+def is_master_reviewer(user):
+    """
+    Whether this user oversees every department.
+    """
+
+    if not can(user, "approve_requests"):
+        return False
+
+    return normalize_role(getattr(user, "role", None)) == MASTER_ROLE
+
+
+def reviewer_department(user):
+    """
+    The office a reviewer belongs to, or None for a master admin.
+    """
+
+    return (getattr(user, "department", None) or "").strip() or None
+
+
+def can_act_on(user, routed_to):
+    """
+    Whether this user may decide a request routed to a given office.
+
+    This is the actual control. Which page a reviewer lands on is
+    navigation; anyone can post a request id at an endpoint. The
+    Registrar must not be able to approve a maintenance ticket by
+    guessing its number, whatever page they came from.
+    """
+
+    if not can(user, "approve_requests"):
+        return False
+
+    if is_master_reviewer(user):
+        return True
+
+    # A scoped reviewer with no department set can act on nothing.
+    # Failing closed is the safe direction: a half-configured account
+    # should approve nothing rather than everything.
+    department = reviewer_department(user)
+
+    if not department:
+        return False
+
+    return department.strip().lower() == (routed_to or "").strip().lower()

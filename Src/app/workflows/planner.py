@@ -71,6 +71,28 @@ GRIEVANCE_DEPARTMENT_BY_KEYWORD = [
 ]
 
 
+# Every office a request can be routed to. Reviewer accounts are
+# assigned one of these, and a reviewer only ever sees the queue for
+# their own. Kept here beside the rules that produce them so the two
+# cannot drift apart.
+DEPARTMENTS = [
+    "Dean of Student Affairs",
+    "Registrar",
+    "Academic Office",
+    "Accounts Department",
+    "Hostel Administration",
+    "Student Grievance Cell",
+    "Laboratory Administration",
+    "Faculty Co-signature (Research Labs)",
+    "Electrical",
+    "Plumbing",
+    "HVAC",
+    "Furniture",
+    "Internet/Network",
+    "General Maintenance"
+]
+
+
 # =========================================================
 # HELPERS
 # =========================================================

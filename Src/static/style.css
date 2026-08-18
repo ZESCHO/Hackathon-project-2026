@@ -1778,3 +1778,28 @@ html[data-theme="light"] .password-toggle {
     font-size: 0.74rem;
     color: var(--muted);
 }
+
+/* Reviewer queue header. */
+.queue-count {
+    margin-top: 14px !important;
+    font-size: 1.05rem !important;
+}
+
+.queue-count strong {
+    color: var(--primary);
+    font-size: 1.3rem;
+}
+
+.queue-departments {
+    margin-top: 10px !important;
+    font-size: 0.82rem !important;
+}
+
+.queue-department {
+    display: inline-block;
+    margin: 4px 4px 0 0;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(167, 139, 250, 0.12);
+    border: 1px solid rgba(167, 139, 250, 0.25);
+}
