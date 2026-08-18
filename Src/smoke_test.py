@@ -436,6 +436,214 @@ def main():
     )
 
     # ----------------------------------------------------------
+    section("UNCERTAINTY GATE")
+
+    before = count(ServiceRequest)
+
+    vague = chat("something happened yesterday and I am not happy")
+
+    check(
+        "a vague message is judged uncertain",
+        vague.get("uncertain") is True,
+        f"score={vague.get('confidence_score')}"
+    )
+    check(
+        "an uncertain message files nothing",
+        count(ServiceRequest) == before,
+        f"{count(ServiceRequest) - before} created"
+    )
+    check(
+        "the user is asked to restate",
+        "haven't filed anything yet"
+        in vague.get("clarification_question", "")
+    )
+
+    clear = chat("The fan in G block room 4 has stopped working")
+
+    check(
+        "a clear message is not judged uncertain",
+        clear.get("uncertain") is False,
+        f"score={clear.get('confidence_score')}"
+    )
+    check("a clear message is filed", bool(clear.get("request_id")))
+
+    with app.app_context():
+        stored = db.session.get(ServiceRequest, clear["request_id"])
+        check(
+            "the real confidence is stored, not a constant",
+            stored.confidence is not None and stored.confidence < 1.0,
+            f"confidence={stored.confidence}"
+        )
+
+    # ----------------------------------------------------------
+    section("APPROVAL ROUTING")
+
+    from app.models.approval import Approval
+
+    routed = [
+        ("/grievance/submit", {
+            "category": "Harassment", "priority": "High",
+            "subject": "Ragging",
+            "description": "seniors threatened me in the hostel"
+        }, "Dean of Student Affairs"),
+        ("/certificate/request", {
+            "certificate_type": "Transfer Certificate",
+            "purpose": "moving college"
+        }, "Registrar"),
+        ("/maintenance/request", {
+            "location": "K block", "room": "3", "category": "Plumbing",
+            "priority": "Medium", "description": "tap is leaking"
+        }, "Plumbing"),
+    ]
+
+    for path, payload, expected in routed:
+
+        client.post(path, data=payload)
+
+        with app.app_context():
+            latest = ServiceRequest.query.order_by(
+                ServiceRequest.id.desc()
+            ).first()
+
+            approval = Approval.query.filter_by(
+                request_id=latest.id
+            ).first()
+
+            check(
+                f"{expected} receives its request",
+                approval is not None and approval.routed_to == expected,
+                approval.routed_to if approval else "no approval row"
+            )
+
+    with app.app_context():
+        pending = Approval.query.filter_by(
+            request_id=latest.id
+        ).first()
+        pending_id = latest.id
+
+    client.post(f"/approval/{pending_id}/approve")
+
+    with app.app_context():
+        closed = Approval.query.filter_by(request_id=pending_id).first()
+
+        check(
+            "approving closes the routed approval",
+            closed.status == "APPROVED",
+            closed.status
+        )
+        check(
+            "the decision records who made it",
+            closed.decided_by is not None and closed.decided_at is not None
+        )
+
+    # ----------------------------------------------------------
+    section("DEPARTMENT SCOPE")
+
+    from app.models.user import User as UserModel
+    from app.security import can_act_on, is_master_reviewer
+
+    # Two reviewers in different offices.
+    with app.app_context():
+        for username, department in [
+            ("scope.dean", "Dean of Student Affairs"),
+            ("scope.electrical", "Electrical"),
+        ]:
+            if not UserModel.query.filter_by(username=username).first():
+                reviewer = UserModel(
+                    username=username,
+                    registration_number=f"REV-{username[-4:]}",
+                    name=username,
+                    role="REVIEWER",
+                    department=department,
+                    is_active=True
+                )
+                reviewer.set_password("ReviewerPass!1")
+                db.session.add(reviewer)
+        db.session.commit()
+
+    # A grievance for the Dean and a maintenance ticket for Electrical.
+    client.post("/grievance/submit", data={
+        "category": "Harassment", "priority": "High",
+        "subject": "Ragging",
+        "description": "seniors threatened me in the hostel"
+    })
+    with app.app_context():
+        dean_request = ServiceRequest.query.order_by(
+            ServiceRequest.id.desc()
+        ).first().id
+
+    client.post("/maintenance/request", data={
+        "location": "Z block", "room": "1", "category": "Electrical",
+        "priority": "High", "description": "socket sparking"
+    })
+    with app.app_context():
+        electrical_request = ServiceRequest.query.order_by(
+            ServiceRequest.id.desc()
+        ).first().id
+
+    dean = app.test_client()
+    dean.post("/login", data={
+        "username": "scope.dean", "password": "ReviewerPass!1"
+    })
+
+    check(
+        "a reviewer lands on the approval queue",
+        dean.post("/login", data={
+            "username": "scope.dean", "password": "ReviewerPass!1"
+        }).headers.get("Location", "").endswith("/approval")
+    )
+
+    # The control: posting another office's request id directly.
+    with app.app_context():
+        before = db.session.get(ServiceRequest, electrical_request).status
+
+    dean.post(f"/approval/{electrical_request}/approve")
+
+    with app.app_context():
+        check(
+            "a reviewer cannot approve another department's request",
+            db.session.get(
+                ServiceRequest, electrical_request
+            ).status == before,
+            "status changed"
+        )
+
+    tickets = count(MaintenanceTicket)
+    dean.post(f"/execution/{electrical_request}/execute")
+
+    check(
+        "a reviewer cannot execute another department's request",
+        count(MaintenanceTicket) == tickets,
+        "a record was created"
+    )
+
+    # And can act on their own.
+    dean.post(f"/approval/{dean_request}/approve")
+
+    with app.app_context():
+        check(
+            "a reviewer can approve their own department's request",
+            db.session.get(
+                ServiceRequest, dean_request
+            ).status == "Approved"
+        )
+
+    # A reviewer whose department was never set must fail closed.
+    class Unassigned:
+        role = "REVIEWER"
+        department = None
+        is_active = True
+
+    check(
+        "a reviewer with no department is not a master",
+        is_master_reviewer(Unassigned()) is False
+    )
+    check(
+        "a reviewer with no department can act on nothing",
+        can_act_on(Unassigned(), "Electrical") is False
+    )
+
+    # ----------------------------------------------------------
     section("AUTHORIZATION")
 
     # A student holds none of the reviewer permissions. The POST

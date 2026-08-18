@@ -71,6 +71,28 @@ GRIEVANCE_DEPARTMENT_BY_KEYWORD = [
 ]
 
 
+# Every office a request can be routed to. Reviewer accounts are
+# assigned one of these, and a reviewer only ever sees the queue for
+# their own. Kept here beside the rules that produce them so the two
+# cannot drift apart.
+DEPARTMENTS = [
+    "Dean of Student Affairs",
+    "Registrar",
+    "Academic Office",
+    "Accounts Department",
+    "Hostel Administration",
+    "Student Grievance Cell",
+    "Laboratory Administration",
+    "Faculty Co-signature (Research Labs)",
+    "Electrical",
+    "Plumbing",
+    "HVAC",
+    "Furniture",
+    "Internet/Network",
+    "General Maintenance"
+]
+
+
 # =========================================================
 # HELPERS
 # =========================================================
@@ -187,6 +209,16 @@ def _certificate_policy(fields):
 
     certificate_type = str(fields.get("certificate_type", "")).lower()
 
+    # knowledge_base/certificates.json names who issues what.
+    if "character" in certificate_type:
+        department = "Dean of Student Affairs"
+
+    elif any(word in certificate_type for word in CLEARANCE_CERTIFICATES):
+        department = "Registrar"
+
+    else:
+        department = "Academic Office"
+
     if any(word in certificate_type for word in CLEARANCE_CERTIFICATES):
 
         notes.append(_note(
@@ -197,7 +229,28 @@ def _certificate_policy(fields):
             blocking=False
         ))
 
-    return notes, {}
+    if "character" in certificate_type:
+
+        notes.append(_note(
+            "cert-003",
+            "Character Certificates require no disciplinary record in "
+            "the current academic year and are issued by the Dean of "
+            "Student Affairs."
+        ))
+
+    return notes, {
+        "department": department,
+        "routing_reason": (
+            f"{certificate_type.title() or 'This certificate'} is "
+            f"issued by the {department}."
+        ),
+        "routing_source": (
+            "cert-003" if "character" in certificate_type
+            else CERTIFICATE_SOURCE_CLEARANCE
+            if any(w in certificate_type for w in CLEARANCE_CERTIFICATES)
+            else "cert-004"
+        )
+    }
 
 
 def _maintenance_policy(fields):
@@ -234,7 +287,12 @@ def _maintenance_policy(fields):
     return notes, {
         "priority": priority,
         "sla": target,
-        "department": department
+        "department": department,
+        "routing_reason": (
+            f"Reported fault handled by {department}. "
+            f"{priority.title()} priority, target {target}."
+        ),
+        "routing_source": MAINTENANCE_SOURCE_SLA
     }
 
 
@@ -258,6 +316,12 @@ def _laboratory_policy(fields, now=None):
     if _matches(laboratory, RESTRICTED_LAB_KEYWORDS):
 
         derived["restricted"] = True
+        derived["department"] = "Faculty Co-signature (Research Labs)"
+        derived["routing_reason"] = (
+            f"{laboratory} is a research laboratory, so a faculty "
+            f"co-signature is required in addition to the booking."
+        )
+        derived["routing_source"] = LAB_SOURCE_RESTRICTED
 
         notes.append(_note(
             LAB_SOURCE_RESTRICTED,
@@ -269,6 +333,12 @@ def _laboratory_policy(fields, now=None):
 
     else:
         derived["restricted"] = False
+        derived["department"] = "Laboratory Administration"
+        derived["routing_reason"] = (
+            "Standard teaching laboratory booking, handled by "
+            "Laboratory Administration."
+        )
+        derived["routing_source"] = LAB_SOURCE_ADVANCE
 
     # ---- advance notice ----
 
@@ -333,7 +403,18 @@ def _grievance_policy(fields):
     return notes, {
         "priority": priority,
         "escalation_level": escalation_level,
-        "department": department
+        "department": department,
+        "routing_reason": (
+            f"{priority.title()} priority grievance for the "
+            f"{department}."
+            + (
+                " Safety related, so escalated within 24 hours."
+                if escalation_level else ""
+            )
+        ),
+        "routing_source": (
+            GRIEVANCE_SOURCE_PRIORITY if escalation_level else "griev-001"
+        )
     }
 
 

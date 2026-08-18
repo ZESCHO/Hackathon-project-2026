@@ -47,6 +47,82 @@ UNSUPPORTED_LANGUAGE_MESSAGE = (
 )
 
 
+# The model's own confidence word, as a starting score. It is only a
+# starting point: a model asked how sure it is tends to say "high".
+CONFIDENCE_SCORES = {
+    "high": 0.9,
+    "medium": 0.6,
+    "low": 0.3
+}
+
+# Below this the platform will not file anything. It asks the user to
+# restate instead, because a misread request becomes a real
+# institutional action that someone then has to undo.
+CONFIDENCE_FLOOR = 0.55
+
+# Each value the model invented and the grounding checks threw away is
+# evidence it did not understand the message, whatever it claims about
+# its own confidence.
+FABRICATION_PENALTY = 0.25
+
+# A request whose details all had to be recovered by the second pass
+# was not clearly stated the first time.
+RETRY_PENALTY = 0.1
+
+
+# Words that stand in for the thing the user has not named.
+VAGUE_MARKERS = {
+    "something", "someone", "somebody", "somewhere", "anything",
+    "stuff", "thing", "things", "issue", "issues", "problem",
+    "problems", "matter", "situation"
+}
+
+# Concrete things a real service request tends to mention. Any one of
+# these, or any digit, means the user named something specific enough
+# to act on.
+CONCRETE_NOUNS = {
+    "block", "room", "hostel", "floor", "building", "wing", "lab",
+    "labs", "laboratory", "library", "canteen", "mess", "gate",
+    "classroom", "class", "hall", "office", "washroom", "toilet",
+    "ac", "fan", "light", "lights", "socket", "switch", "tap",
+    "water", "pipe", "sink", "drain", "projector", "computer",
+    "wifi", "internet", "network", "door", "window", "chair",
+    "desk", "table", "bench", "board", "certificate", "bonafide",
+    "transfer", "character", "marksheet", "scholarship", "fee",
+    "fees", "exam", "attendance", "warden", "senior", "seniors",
+    "faculty", "professor", "teacher", "ragging", "harassment"
+}
+
+
+def _has_concrete_anchor(text):
+    """
+    Whether the message names anything specific enough to act on.
+
+    "something happened and I am not happy" names nothing: there is no
+    place, object or person in it, so there is nothing to file against.
+    A digit, or any concrete campus noun, is enough.
+    """
+
+    lowered = (text or "").lower()
+
+    if any(character.isdigit() for character in lowered):
+        return True
+
+    words = set(re.findall(r"[a-z]+", lowered))
+
+    return bool(words & CONCRETE_NOUNS)
+
+
+def _is_vague(text):
+    """
+    A message that leans on placeholder words and names nothing.
+    """
+
+    words = set(re.findall(r"[a-z]+", (text or "").lower()))
+
+    return bool(words & VAGUE_MARKERS) and not _has_concrete_anchor(text)
+
+
 REQUIRED_FIELDS = {
     "certificate": ["certificate_type", "purpose"],
     "maintenance": ["location", "room", "description"],
@@ -285,7 +361,7 @@ def _extract_fields(category, transcript, missing):
     """
 
     if not missing:
-        return {}
+        return {}, 0
 
     today = datetime.now()
 
@@ -326,12 +402,14 @@ Return ONLY a JSON object with exactly these keys:
     except (ModelUnavailable, ValueError, json.JSONDecodeError) as error:
         print("FIELD EXTRACTION ERROR:", error)
         trace.note("EXTRACTION FAILED", str(error))
-        return {}
+        return {}, 0
 
     if not isinstance(data, dict):
-        return {}
+        return {}, 0
 
     extracted = {}
+
+    rejected = 0
 
     for field in missing:
 
@@ -346,6 +424,7 @@ Return ONLY a JSON object with exactly these keys:
                 "not present in what the user typed (invented or "
                 "copied from a prompt example)"
             )
+            rejected += 1
             continue
 
         if not _is_plausible_value(field, value, transcript):
@@ -353,11 +432,12 @@ Return ONLY a JSON object with exactly these keys:
                 field, value,
                 "echoes the whole message back instead of answering"
             )
+            rejected += 1
             continue
 
         extracted[field] = value
 
-    return extracted
+    return extracted, rejected
 
 
 def _normalize_text(text):
@@ -1199,6 +1279,8 @@ def _normalize(data, user_request, transcript=""):
     # gave none. Drop anything not traceable to what they typed BEFORE
     # completeness is judged, or the request is filed against a room
     # nobody mentioned.
+    fabricated = 0
+
     for field in list(fields):
 
         value = str(fields.get(field, "")).strip()
@@ -1210,6 +1292,7 @@ def _normalize(data, user_request, transcript=""):
                 "copied from a prompt example)"
             )
             fields.pop(field)
+            fabricated += 1
 
     fields = _resolve_closed_vocabulary(category, fields, transcript)
 
@@ -1239,6 +1322,8 @@ def _normalize(data, user_request, transcript=""):
     # something they may already have told us. Optional fields ride
     # along on the same call: we offer them in the question, so
     # discarding an answer the user did give would be rude.
+    needed_retry = False
+
     if outstanding():
 
         wanted = outstanding() + [
@@ -1247,17 +1332,87 @@ def _normalize(data, user_request, transcript=""):
             if not str(fields.get(field, "")).strip()
         ]
 
-        fields.update(
-            _extract_fields(category, transcript, wanted)
+        recovered, retry_rejected = _extract_fields(
+            category, transcript, wanted
         )
 
+        fields.update(recovered)
+
+        fabricated += retry_rejected
+
+        needed_retry = bool(recovered)
+
     result["fields"] = fields
+
+    # ------------------------------------------------
+    # HOW SURE ARE WE, REALLY
+    # ------------------------------------------------
+
+    score = CONFIDENCE_SCORES.get(result["confidence"], 0.3)
+
+    score -= FABRICATION_PENALTY * fabricated
+
+    if needed_retry:
+        score -= RETRY_PENALTY
+
+    # A model asked how sure it is will usually say "high", so its own
+    # word cannot be the only signal. This one is checked against the
+    # text itself and gives the same answer every time.
+    vague = _is_vague(transcript)
+
+    if vague:
+        score = min(score, 0.4)
+
+    score = max(0.0, min(1.0, round(score, 2)))
+
+    result["confidence_score"] = score
+    result["uncertain"] = score < CONFIDENCE_FLOOR
+
+    trace.note(
+        "CONFIDENCE",
+        f"model said {result['confidence']}, "
+        f"{fabricated} invented value(s) rejected, "
+        f"retry needed: {needed_retry}, "
+        f"names nothing specific: {vague} -> score {score} "
+        f"({'UNCERTAIN' if result['uncertain'] else 'confident'})"
+    )
 
     actually_missing = outstanding()
 
     result["missing"] = actually_missing
 
     trace.note("FIELDS ACCEPTED", fields)
+
+    # ------------------------------------------------
+    # TOO UNSURE TO ACT
+    # ------------------------------------------------
+
+    # Filing on a shaky reading creates a real ticket, booking or
+    # grievance that a human then has to find and undo. Asking costs
+    # one more message.
+    if result["uncertain"]:
+
+        result["status"] = "needs_clarification"
+        result["missing"] = actually_missing
+
+        result["clarification_question"] = (
+            "I'm not confident I understood that correctly, so I "
+            "haven't filed anything yet.\n\n"
+            "Could you restate it with the specifics? For a "
+            f"{category} request that means:\n\n"
+            + "\n".join(
+                f"{FIELD_PROMPTS.get(field, field)}:"
+                for field in REQUIRED_FIELDS.get(category, [])
+            )
+        )
+
+        trace.decision_note(
+            f"WITHHELD - confidence {result['confidence_score']} is "
+            f"below the {CONFIDENCE_FLOOR} floor; asked the user to "
+            f"restate rather than filing"
+        )
+
+        return result
 
     if actually_missing:
 

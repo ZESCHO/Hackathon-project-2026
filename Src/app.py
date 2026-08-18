@@ -26,9 +26,21 @@ from app.ai_agent import understand_request
 from app.models import db, AuditLog, User
 from app.models.request import ServiceRequest
 from app.models.workflow import Workflow
-from app.db_migrate import sync_columns, migrate_users
+from app.models.approval import Approval
+from app.db_migrate import sync_columns, migrate_users, migrate_approvals
 from app.workflows.executor import create_workflow, execute_workflow
-from app.security import can
+from app.formatting import (
+    local_datetime,
+    local_date,
+    local_time,
+    time_ago
+)
+from app.security import (
+    can,
+    can_act_on,
+    is_master_reviewer,
+    reviewer_department
+)
 from app import trace
 
 # =========================================================
@@ -186,7 +198,9 @@ def chat():
             service=category.capitalize(),
             description=description,
             fields=fields,
-            category=category
+            category=category,
+            confidence=user_request.get("confidence_score", 1.0),
+            source="assistant"
         )
 
         user_request["request_id"] = service_request.id
@@ -252,6 +266,11 @@ with app.app_context():
 
     if users_migration:
         print("Database:", users_migration)
+
+    approvals_migration = migrate_approvals(db)
+
+    if approvals_migration:
+        print("Database:", approvals_migration)
 
     db.create_all()
 
@@ -675,7 +694,9 @@ def create_approval_request(
     service,
     description,
     fields=None,
-    category=None
+    category=None,
+    confidence=1.0,
+    source="form"
 ):
 
     if not user:
@@ -697,9 +718,11 @@ def create_approval_request(
 
         status="Pending Approval",
 
-        confidence=1.0,
+        confidence=confidence,
 
         requires_approval=True,
+
+        source=source,
 
         fields_json=fields
 
@@ -1073,6 +1096,13 @@ def certificate_request():
 # ADMIN / REVIEWER ACCESS CONTROL
 # ============================================================
 
+# Timestamps are stored in UTC and read in the institution's timezone.
+app.jinja_env.filters["localdatetime"] = local_datetime
+app.jinja_env.filters["localdate"] = local_date
+app.jinja_env.filters["localtime"] = local_time
+app.jinja_env.filters["timeago"] = time_ago
+
+
 @app.context_processor
 def inject_permissions():
     """
@@ -1116,6 +1146,42 @@ def require_permission(permission, area="this area"):
     return user, None
 
 
+def routed_department(service_request):
+    """
+    Which office a request was routed to.
+    """
+
+    approval = Approval.query.filter_by(
+        request_id=service_request.id
+    ).order_by(Approval.id.desc()).first()
+
+    return approval.routed_to if approval else None
+
+
+def require_scope(user, service_request):
+    """
+    Refuse a decision on a request belonging to another office.
+
+    Landing a reviewer on their own queue is navigation. This is the
+    control: the Registrar cannot approve a maintenance ticket by
+    posting its id, whatever page they came from.
+    """
+
+    department = routed_department(service_request)
+
+    if can_act_on(user, department):
+        return None
+
+    flash(
+        f"Request #{service_request.id} is routed to "
+        f"{department or 'another office'}. You can only act on "
+        f"requests routed to "
+        f"{reviewer_department(user) or 'your own department'}."
+    )
+
+    return redirect(url_for("approval_page"))
+
+
 def require_reviewer():
     """
     Anyone who may approve or reject a request.
@@ -1136,9 +1202,44 @@ def approval_page():
     if response:
         return response
 
+    routing = {
+        approval.request_id: approval
+        for approval in Approval.query.all()
+    }
+
     requests = ServiceRequest.query.order_by(
         ServiceRequest.created_at.desc()
     ).all()
+
+    # A scoped reviewer sees only their own office's queue. This
+    # mirrors what require_scope() enforces on the decision endpoints,
+    # so the page never shows something the reviewer cannot act on.
+    scope = reviewer_department(reviewer)
+
+    if not is_master_reviewer(reviewer):
+
+        requests = [
+            item for item in requests
+            if can_act_on(
+                reviewer,
+                routing[item.id].routed_to if item.id in routing else None
+            )
+        ]
+
+    visible_ids = {item.id for item in requests}
+
+    pending_count = sum(
+        1 for approval in routing.values()
+        if approval.status == "PENDING"
+        and approval.request_id in visible_ids
+    )
+
+    departments = sorted({
+        approval.routed_to
+        for approval in routing.values()
+        if approval.status == "PENDING"
+        and approval.request_id in visible_ids
+    })
 
     # The stored plan, so the reviewer can see the intended steps and
     # the policy findings before approving anything.
@@ -1156,7 +1257,12 @@ def approval_page():
     return render_template(
         "approval.html",
         requests=requests,
-        request_plans=request_plans
+        request_plans=request_plans,
+        routing=routing,
+        departments=departments,
+        scope=scope,
+        pending_count=pending_count,
+        is_master=is_master_reviewer(reviewer)
     )
 
 
@@ -1183,10 +1289,27 @@ def approve_request(request_id):
 
 
     # -----------------------------------------------------
+    # DEPARTMENT SCOPE
+    # -----------------------------------------------------
+
+    denied = require_scope(reviewer, service_request)
+
+    if denied:
+        return denied
+
+
+    # -----------------------------------------------------
     # UPDATE REQUEST
     # -----------------------------------------------------
 
     service_request.status = "Approved"
+
+    # Close the routed approval this decision answers.
+    for approval in Approval.query.filter_by(
+        request_id=service_request.id,
+        status="PENDING"
+    ).all():
+        approval.decide(True, reviewer)
 
     db.session.commit()
 
@@ -1278,10 +1401,27 @@ def reject_request(request_id):
 
 
     # -----------------------------------------------------
+    # DEPARTMENT SCOPE
+    # -----------------------------------------------------
+
+    denied = require_scope(reviewer, service_request)
+
+    if denied:
+        return denied
+
+
+    # -----------------------------------------------------
     # UPDATE REQUEST
     # -----------------------------------------------------
 
     service_request.status = "Rejected"
+
+    # Close the routed approval this decision answers.
+    for approval in Approval.query.filter_by(
+        request_id=service_request.id,
+        status="PENDING"
+    ).all():
+        approval.decide(False, reviewer)
 
     db.session.commit()
 
@@ -1437,7 +1577,8 @@ def audit():
                 record.tool_name,
 
             "timestamp":
-                record.timestamp.strftime(
+                local_datetime(
+                    record.timestamp,
                     "%d %b %Y, %I:%M:%S %p"
                 )
 
@@ -1600,6 +1741,16 @@ def execute_request(request_id):
     service_request = ServiceRequest.query.get_or_404(
         request_id
     )
+
+
+    # -----------------------------------------------------
+    # DEPARTMENT SCOPE
+    # -----------------------------------------------------
+
+    denied = require_scope(reviewer, service_request)
+
+    if denied:
+        return denied
 
 
     # -----------------------------------------------------
@@ -1917,6 +2068,11 @@ def login():
     print()
 
     flash(f"Welcome back, {user.name}!")
+
+    # Reviewers exist to work a queue, so send them straight to it
+    # rather than to a student dashboard they have no requests on.
+    if can(user, "approve_requests"):
+        return redirect(url_for("approval_page"))
 
     return redirect(url_for("home"))
 

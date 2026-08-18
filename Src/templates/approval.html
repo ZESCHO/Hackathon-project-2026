@@ -34,12 +34,12 @@
         .approval-hero h1 {
             font-size: 42px;
             margin-bottom: 12px;
-            color: #172554;
+            color: var(--text-strong);
         }
 
         .approval-hero p {
             font-size: 18px;
-            color: #64748b;
+            color: var(--muted);
         }
 
 
@@ -52,8 +52,8 @@
             background:
                 linear-gradient(
                     135deg,
-                    #eff6ff,
-                    #eef2ff
+                    rgba(125, 211, 252, 0.08),
+                    rgba(139, 92, 246, 0.08)
                 );
 
             border-left: 5px solid #2563eb;
@@ -69,12 +69,12 @@
 
             margin-top: 0;
 
-            color: #172554;
+            color: var(--text-strong);
         }
 
         .security-banner p {
 
-            color: #475569;
+            color: var(--text);
 
             line-height: 1.7;
         }
@@ -93,7 +93,7 @@
 
             font-size: 28px;
 
-            color: #172554;
+            color: var(--text-strong);
 
             margin-bottom: 20px;
         }
@@ -105,7 +105,7 @@
 
         .request-card {
 
-            background: white;
+            background: var(--panel);
 
             border-radius: 18px;
 
@@ -113,7 +113,7 @@
 
             margin-bottom: 25px;
 
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--line);
 
             box-shadow:
                 0 8px 25px rgba(15, 23, 42, 0.07);
@@ -153,7 +153,7 @@
 
             margin: 0;
 
-            color: #172554;
+            color: var(--text-strong);
 
             font-size: 23px;
         }
@@ -162,7 +162,7 @@
 
             margin-top: 6px;
 
-            color: #64748b;
+            color: var(--muted);
 
             font-size: 14px;
         }
@@ -189,30 +189,30 @@
 
         .status-pending {
 
-            background: #fef3c7;
+            background: rgba(250, 204, 21, 0.15);
 
-            color: #92400e;
+            color: #fbbf24;
         }
 
         .status-approved {
 
-            background: #dcfce7;
+            background: rgba(34, 197, 94, 0.15);
 
-            color: #166534;
+            color: #4ade80;
         }
 
         .status-rejected {
 
-            background: #fee2e2;
+            background: rgba(248, 113, 113, 0.15);
 
-            color: #991b1b;
+            color: #f87171;
         }
 
         .status-executed {
 
-            background: #dbeafe;
+            background: rgba(125, 211, 252, 0.15);
 
-            color: #1d4ed8;
+            color: #7dd3fc;
         }
 
 
@@ -222,7 +222,7 @@
 
         .request-details {
 
-            background: #f8fafc;
+            background: rgba(125, 211, 252, 0.05);
 
             border-radius: 12px;
 
@@ -235,14 +235,14 @@
 
             margin: 8px 0;
 
-            color: #475569;
+            color: var(--text);
 
             line-height: 1.6;
         }
 
         .request-details strong {
 
-            color: #172554;
+            color: var(--text-strong);
         }
 
 
@@ -256,11 +256,11 @@
 
             padding: 18px;
 
-            background: #f1f5f9;
+            background: rgba(125, 211, 252, 0.05);
 
             border-radius: 12px;
 
-            color: #334155;
+            color: var(--text);
 
             line-height: 1.7;
         }
@@ -277,11 +277,11 @@
             background:
                 linear-gradient(
                     135deg,
-                    #f8f7ff,
-                    #eef6ff
+                    rgba(139, 92, 246, 0.07),
+                    rgba(125, 211, 252, 0.07)
                 );
 
-            border: 1px solid #dbeafe;
+            border: 1px solid rgba(125, 211, 252, 0.2);
 
             border-radius: 16px;
 
@@ -318,7 +318,7 @@
 
             border-radius: 12px;
 
-            background: #dbeafe;
+            background: rgba(125, 211, 252, 0.15);
 
             font-size: 24px;
         }
@@ -328,7 +328,7 @@
 
             margin: 0;
 
-            color: #172554;
+            color: var(--text-strong);
 
             font-size: 20px;
         }
@@ -338,7 +338,7 @@
 
             margin: 3px 0 0;
 
-            color: #64748b;
+            color: var(--muted);
 
             font-size: 13px;
         }
@@ -363,9 +363,9 @@
 
         .ai-analysis-box {
 
-            background: white;
+            background: var(--panel);
 
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--line);
 
             border-radius: 12px;
 
@@ -379,7 +379,7 @@
 
             font-size: 12px;
 
-            color: #64748b;
+            color: var(--muted);
 
             margin-bottom: 6px;
 
@@ -393,7 +393,7 @@
 
         .ai-analysis-box strong {
 
-            color: #172554;
+            color: var(--text-strong);
 
             font-size: 15px;
         }
@@ -409,7 +409,7 @@
 
             height: 8px;
 
-            background: #e2e8f0;
+            background: rgba(148, 163, 184, 0.18);
 
             border-radius: 20px;
 
@@ -435,7 +435,7 @@
 
         .ai-recommendation {
 
-            background: white;
+            background: var(--panel);
 
             border-left: 4px solid #2563eb;
 
@@ -443,7 +443,7 @@
 
             padding: 16px;
 
-            color: #334155;
+            color: var(--text);
 
             line-height: 1.6;
 
@@ -453,7 +453,7 @@
 
         .ai-recommendation strong {
 
-            color: #172554;
+            color: var(--text-strong);
         }
 
 
@@ -556,25 +556,25 @@
 
         .approved-message {
 
-            background: #ecfdf5;
+            background: rgba(34, 197, 94, 0.08);
 
-            color: #166534;
+            color: #4ade80;
         }
 
 
         .executed-message {
 
-            background: #eff6ff;
+            background: rgba(125, 211, 252, 0.08);
 
-            color: #1d4ed8;
+            color: #7dd3fc;
         }
 
 
         .rejected-message {
 
-            background: #fef2f2;
+            background: rgba(248, 113, 113, 0.08);
 
-            color: #991b1b;
+            color: #f87171;
         }
 
 
@@ -586,13 +586,13 @@
 
             text-align: center;
 
-            background: white;
+            background: var(--panel);
 
             border-radius: 18px;
 
             padding: 50px 25px;
 
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--line);
         }
 
 
@@ -606,7 +606,7 @@
 
         .empty-state h3 {
 
-            color: #172554;
+            color: var(--text-strong);
 
             font-size: 24px;
         }
@@ -614,7 +614,7 @@
 
         .empty-state p {
 
-            color: #64748b;
+            color: var(--muted);
         }
 
 
@@ -626,7 +626,7 @@
 
             margin-top: 40px;
 
-            background: white;
+            background: var(--panel);
 
             border-radius: 18px;
 
@@ -639,7 +639,7 @@
 
         .workflow-section h2 {
 
-            color: #172554;
+            color: var(--text-strong);
 
             margin-top: 0;
         }
@@ -660,13 +660,13 @@
 
         .workflow-step {
 
-            background: #f8fafc;
+            background: rgba(125, 211, 252, 0.05);
 
             padding: 22px;
 
             border-radius: 14px;
 
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--line);
         }
 
 
@@ -680,7 +680,7 @@
 
         .workflow-step h3 {
 
-            color: #172554;
+            color: var(--text-strong);
 
             margin-bottom: 8px;
         }
@@ -688,7 +688,7 @@
 
         .workflow-step p {
 
-            color: #64748b;
+            color: var(--muted);
 
             line-height: 1.6;
 
@@ -818,13 +818,40 @@
     <section class="hero approval-hero">
 
         <h1>
-            🔐 Human Approval Center
+            {% if is_master %}
+                Human Approval Center
+            {% else %}
+                {{ scope or "Your" }} Queue
+            {% endif %}
         </h1>
 
         <p>
-            Review and authorize consequential actions
-            before they are executed.
+            {% if is_master %}
+                Overseeing every department. Review and authorize
+                consequential actions before they are executed.
+            {% else %}
+                Requests routed to {{ scope or "your department" }}.
+                You can only act on these.
+            {% endif %}
         </p>
+
+        <p class="queue-count">
+            {% if pending_count %}
+                <strong>{{ pending_count }}</strong>
+                awaiting your decision
+            {% else %}
+                Nothing awaiting your decision
+            {% endif %}
+        </p>
+
+        {% if is_master and departments %}
+        <p class="queue-departments">
+            Pending across:
+            {% for department in departments %}
+            <span class="queue-department">{{ department }}</span>
+            {% endfor %}
+        </p>
+        {% endif %}
 
     </section>
 
@@ -988,9 +1015,7 @@
                             🕐 Submitted:
                         </strong>
 
-                        {{ item.created_at.strftime(
-                            "%d %b %Y, %I:%M %p"
-                        ) }}
+                        {{ item.created_at|localdatetime }}
 
                     </p>
 
@@ -1006,13 +1031,20 @@
 
                 <div class="request-description">
 
-                    <strong>
-                        📋 Request Details
-                    </strong>
+                    <strong>Request Details</strong>
 
-                    <br><br>
-
-                    {{ item.request_text }}
+                    {% if item.fields_json %}
+                    <dl class="request-fields">
+                        {% for key, value in item.fields_json.items() %}
+                        {% if value %}
+                        <dt>{{ key|replace("_", " ")|title }}</dt>
+                        <dd>{{ value }}</dd>
+                        {% endif %}
+                        {% endfor %}
+                    </dl>
+                    {% else %}
+                    <p class="request-raw">{{ item.request_text }}</p>
+                    {% endif %}
 
                 </div>
 
@@ -1025,6 +1057,18 @@
                      what policy it consulted, before deciding.
                 ================================================= -->
 
+                {% set route = routing.get(item.id) %}
+
+                {% if route %}
+                <div class="routing-panel">
+                    <span class="routing-label">Routed to</span>
+                    <strong>{{ route.routed_to }}</strong>
+                    {% if route.routing_reason %}
+                    <span class="routing-reason">{{ route.routing_reason }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 {% set plan = request_plans.get(item.id) %}
 
                 {% if plan %}
@@ -1032,12 +1076,12 @@
                 {% if plan.policy_notes %}
                 <div class="policy-panel">
 
-                    <strong>📕 Policy Findings</strong>
+                    <strong>Policy the agent applied</strong>
 
                     {% for note in plan.policy_notes %}
                     <div class="policy-note {% if note.blocking %}policy-note-blocking{% endif %}">
 
-                        <span class="policy-source">[{{ note.source }}]</span>
+                        <span class="policy-source">{{ note.source }}</span>
 
                         {% if note.blocking %}
                         <span class="policy-flag">Conflict</span>
@@ -1051,17 +1095,51 @@
                 </div>
                 {% endif %}
 
+                {% set gate = plan.steps
+                    | selectattr("actor", "equalto", "HUMAN")
+                    | map(attribute="step") | first %}
+
                 <div class="plan-panel">
 
-                    <strong>🧭 Planned Steps</strong>
+                    <strong>What approving this will do</strong>
+
+                    <p class="plan-intro">
+                        The agent planned these steps before anything
+                        happened, so you can see the whole sequence
+                        before authorising any of it.
+                    </p>
 
                     <ol class="plan-steps">
                         {% for step in plan.steps %}
-                        <li class="plan-step plan-step-{{ step.actor|lower }}">
-                            {{ step.description }}
-                            {% if step.actor == "HUMAN" %}
-                            <span class="plan-actor">requires a human</span>
-                            {% endif %}
+
+                        {% if gate and step.step < gate %}
+                            {% set state = "done" %}
+                        {% elif gate and step.step == gate %}
+                            {% set state = "gate" %}
+                        {% else %}
+                            {% set state = "pending" %}
+                        {% endif %}
+
+                        <li class="plan-step plan-step-{{ state }}">
+
+                            <span class="plan-mark">
+                                {% if state == "done" %}done
+                                {% elif state == "gate" %}you
+                                {% else %}then{% endif %}
+                            </span>
+
+                            <span class="plan-text">
+                                {{ step.description }}
+                                {% if state == "done" %}
+                                <em>already completed when the request
+                                    was filed</em>
+                                {% elif state == "gate" %}
+                                <em>this decision</em>
+                                {% else %}
+                                <em>runs only if you approve</em>
+                                {% endif %}
+                            </span>
+
                         </li>
                         {% endfor %}
                     </ol>
@@ -1176,40 +1254,46 @@
                     <div class="ai-analysis-box">
 
                         <span>
-                            AI Confidence
+                            {% if item.source == "assistant" %}
+                                Understanding Confidence
+                            {% else %}
+                                Source
+                            {% endif %}
                         </span>
 
+                        {% if item.source != "assistant" %}
+
+                        <strong>Service form</strong>
+
+                        <p class="ai-box-note">
+                            Filled in by the student, not interpreted.
+                        </p>
+
+                        {% elif item.confidence is not none %}
 
                         <strong>
-
-                            {% if item.confidence is not none %}
-
-                                {{ "%.0f"|format(
-                                    item.confidence * 100
-                                ) }}%
-
-                            {% else %}
-
-                                Not Available
-
-                            {% endif %}
-
+                            {{ "%.0f"|format(item.confidence * 100) }}%
                         </strong>
 
-
                         <div class="confidence-bar">
-
                             <div
                                 class="confidence-fill"
-                                style="
-                                    width:
-                                    {{ (
-                                        item.confidence * 100
-                                    ) if item.confidence is not none else 0 }}%;
-                                "
+                                style="width: {{ (item.confidence * 100)|round|int }}%;"
                             ></div>
-
                         </div>
+
+                        <p class="ai-box-note">
+                            How well the message matched what this
+                            request needs. Anything below 55% is not
+                            filed at all; the student is asked to
+                            restate it.
+                        </p>
+
+                        {% else %}
+
+                        <strong>Not recorded</strong>
+
+                        {% endif %}
 
                     </div>
 
@@ -1217,79 +1301,60 @@
 
                     <!-- APPROVAL REQUIREMENT -->
 
-                    <div class="ai-recommendation">
+                    <div class="ai-finding">
 
-                        <strong>
-                            🛡️ Approval Requirement:
-                        </strong>
+                            <strong>What the assistant extracted</strong>
 
-                        <br>
+                            {% if item.source == "assistant" %}
+                            <p>
+                                Collected through conversation. Values
+                                the model could not trace back to the
+                                student's own words were rejected rather
+                                than guessed, so anything shown here was
+                                actually stated.
+                            </p>
+                            {% else %}
+                            <p>
+                                Submitted directly through the service
+                                form. No AI classification was involved
+                                in this request.
+                            </p>
+                            {% endif %}
 
+                        </div>
 
-                        {% if item.requires_approval %}
+                        {% set plan = request_plans.get(item.id) %}
 
-                            Human approval is required before
-                            this request can proceed to execution.
+                        {% if plan and plan.policy_notes %}
+                        <div class="ai-finding">
 
-                        {% else %}
+                            <strong>Policy consulted</strong>
 
-                            This request does not currently
-                            require human approval.
+                            {% for note in plan.policy_notes %}
+                            <p class="{% if note.blocking %}ai-blocking{% endif %}">
+                                {% if note.blocking %}Conflict:{% endif %}
+                                {{ note.message }}
+                                <span class="ai-source">{{ note.source }}</span>
+                            </p>
+                            {% endfor %}
 
+                        </div>
                         {% endif %}
 
-                    </div>
+                        <div class="ai-finding">
 
+                            <strong>Why a human decides this</strong>
 
+                            <p>
+                                The assistant classifies and plans. It
+                                cannot approve or execute: those are
+                                separate endpoints that check your
+                                permission and your department every
+                                time, not settings this analysis can
+                                change.
+                            </p>
 
-                    <!-- AI RECOMMENDATION -->
-
-                    <div class="ai-recommendation">
-
-                        <strong>
-                            🧠 AI Recommendation:
-                        </strong>
-
-                        <br>
-
-                        {% if item.requires_approval %}
-
-                            The request has been classified by
-                            the AI system and requires authorized
-                            human review before any consequential
-                            action is performed.
-
-                        {% else %}
-
-                            The request has been analyzed by the
-                            AI system and does not currently require
-                            human approval.
-
-                        {% endif %}
-
-                    </div>
-
-
-
-                    <!-- SAFETY POLICY -->
-
-                    <div class="ai-recommendation">
-
-                        <strong>
-                            🔐 Safety Policy:
-                        </strong>
-
-                        <br>
-
-                        AI analysis is advisory only.
-                        Human authorization is required before
-                        consequential institutional actions can
-                        be executed.
-
-                    </div>
-
-
-                </div>
+                        </div>
 
 
 
