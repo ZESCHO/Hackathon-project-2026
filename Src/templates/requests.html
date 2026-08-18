@@ -413,7 +413,7 @@
 
                     <p>
 
-                        {{ item.request_text }}
+                        {{ item.fields_json|summary(item.request_text) }}
 
                     </p>
 

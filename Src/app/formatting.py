@@ -92,3 +92,44 @@ def time_ago(value):
         return f"{int(days)} day{'s' if int(days) != 1 else ''} ago"
 
     return local.strftime("%d %b %Y")
+
+
+# Fields that repeat information already shown beside the summary, or
+# that are noise in a one line view.
+_SUMMARY_SKIP = {"reported_by", "student_id", "registration_number"}
+
+
+def field_summary(fields, fallback="", limit=3):
+    """
+    A one line summary of a request, for lists and cards.
+
+    Requests store their details as structured fields. Printing the
+    raw description gives "location: Boys Hostel 8 | room: 207 |
+    description: light not working", which is the storage format
+    leaking into the interface.
+    """
+
+    if not fields:
+        return fallback or "No details recorded"
+
+    parts = []
+
+    # Description carries the substance, so it leads.
+    description = str(fields.get("description") or "").strip()
+
+    for key, value in fields.items():
+
+        if key in _SUMMARY_SKIP or key == "description":
+            continue
+
+        value = str(value or "").strip()
+
+        if value:
+            parts.append(value)
+
+    context = " · ".join(parts[:limit])
+
+    if description and context:
+        return f"{description} — {context}"
+
+    return description or context or (fallback or "No details recorded")

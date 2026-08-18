@@ -30,6 +30,7 @@ from app.models.approval import Approval
 from app.db_migrate import sync_columns, migrate_users, migrate_approvals
 from app.workflows.executor import create_workflow, execute_workflow
 from app.formatting import (
+    field_summary,
     local_datetime,
     local_date,
     local_time,
@@ -1101,6 +1102,7 @@ app.jinja_env.filters["localdatetime"] = local_datetime
 app.jinja_env.filters["localdate"] = local_date
 app.jinja_env.filters["localtime"] = local_time
 app.jinja_env.filters["timeago"] = time_ago
+app.jinja_env.filters["summary"] = field_summary
 
 
 @app.context_processor
