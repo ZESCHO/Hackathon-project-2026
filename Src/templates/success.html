@@ -30,7 +30,7 @@
         <nav>
             <a href="/">Dashboard</a>
             <a href="/requests">My Requests</a>
-            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+            {% if can_do("approve_requests") %}
             <a href="/approval">Approvals</a>
             <a href="/execution">Execution</a>
             <a href="/audit">Audit Trail</a>

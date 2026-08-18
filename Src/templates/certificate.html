@@ -24,7 +24,7 @@
 
         <nav>
             <a href="/">Dashboard</a>
-            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+            {% if can_do("approve_requests") %}
                 <a href="/audit">Audit Trail</a>
             {% endif %}
         </nav>

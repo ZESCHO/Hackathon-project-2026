@@ -436,6 +436,75 @@ def main():
     )
 
     # ----------------------------------------------------------
+    section("AUTHORIZATION")
+
+    # A student holds none of the reviewer permissions. The POST
+    # endpoints matter more than the pages: hiding a link is not a
+    # control, and a request id is easy to guess.
+    student = app.test_client()
+
+    student.post("/register", data={
+        "username": "perm.student",
+        "registration_number": "25P999P99",
+        "password": "StudentPass!1",
+        "confirm_password": "StudentPass!1"
+    })
+    student.post("/login", data={
+        "username": "perm.student",
+        "password": "StudentPass!1"
+    })
+
+    check(
+        "student reaches their own requests",
+        student.get("/requests").status_code == 200
+    )
+
+    for path in ["/approval", "/execution", "/audit"]:
+        check(
+            f"student is refused {path}",
+            student.get(path).status_code == 302,
+            student.get(path).status_code
+        )
+
+    check(
+        "student is refused the audit api",
+        student.get("/api/agent/audit").status_code == 403
+    )
+
+    # Something still pending, to try to act on.
+    reply = chat("The tap in F block room 2 is leaking")
+    victim_id = reply.get("request_id")
+
+    if victim_id:
+        before_status = None
+
+        with app.app_context():
+            before_status = db.session.get(
+                ServiceRequest, victim_id
+            ).status
+
+        student.post(f"/approval/{victim_id}/approve")
+
+        with app.app_context():
+            check(
+                "student cannot approve a request",
+                db.session.get(
+                    ServiceRequest, victim_id
+                ).status == before_status,
+                "status changed"
+            )
+
+        tickets = count(MaintenanceTicket)
+
+        student.post(f"/execution/{victim_id}/execute")
+
+        check(
+            "student cannot execute a request",
+            count(MaintenanceTicket) == tickets,
+            "a record was created"
+        )
+
+    # ----------------------------------------------------------
     section("PAGES")
 
     for path in ["/", "/audit", "/approval", "/execution", "/requests",

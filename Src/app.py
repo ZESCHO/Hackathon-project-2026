@@ -28,6 +28,7 @@ from app.models.request import ServiceRequest
 from app.models.workflow import Workflow
 from app.db_migrate import sync_columns, migrate_users
 from app.workflows.executor import create_workflow, execute_workflow
+from app.security import can
 from app import trace
 
 # =========================================================
@@ -94,7 +95,7 @@ def chat():
 
     user = get_current_user()
 
-    if not user:
+    if not can(user, "use_assistant"):
         return jsonify({
             "reply": {
                 "message": "Please login before using the assistant.",
@@ -1072,53 +1073,55 @@ def certificate_request():
 # ADMIN / REVIEWER ACCESS CONTROL
 # ============================================================
 
-def require_reviewer():
+@app.context_processor
+def inject_permissions():
+    """
+    Give templates the same permission check the routes use.
 
-    # Get the currently logged-in user
+    Without this a template decides what to show by naming roles
+    inline, which drifts from the table the routes enforce: a link
+    stays visible to someone the route then refuses.
+    """
+
+    def can_do(permission):
+        return can(get_current_user(), permission)
+
+    return {"can_do": can_do}
+
+
+def require_permission(permission, area="this area"):
+    """
+    Gate a page on a permission rather than on a role name.
+
+    Returns (user, None) when allowed, or (None, response) with a
+    redirect to follow. Checking a permission means a new role only has
+    to be added to the table in app/security/permissions.py, with no
+    route left behind still naming the old roles.
+    """
+
     user = get_current_user()
-
-    # --------------------------------------------------------
-    # NOT LOGGED IN
-    # --------------------------------------------------------
 
     if user is None:
 
-        flash(
-            "Please login to access the Approval Center."
-        )
+        flash(f"Please login to access {area}.")
 
-        return None, redirect(
-            url_for("login")
-        )
+        return None, redirect(url_for("login"))
 
+    if not can(user, permission):
 
-    # --------------------------------------------------------
-    # CHECK ROLE
-    # --------------------------------------------------------
+        flash("You are not authorized to access this area.")
 
-    role = (user.role or "").upper().strip()
+        return None, redirect(url_for("home"))
+
+    return user, None
 
 
-    # --------------------------------------------------------
-    # ADMIN / REVIEWER ALLOWED
-    # --------------------------------------------------------
+def require_reviewer():
+    """
+    Anyone who may approve or reject a request.
+    """
 
-    if role in ["ADMIN", "REVIEWER"]:
-
-        return user, None
-
-
-    # --------------------------------------------------------
-    # STUDENT / UNAUTHORIZED
-    # --------------------------------------------------------
-
-    flash(
-        "You are not authorized to access this area."
-    )
-
-    return None, redirect(
-        url_for("home")
-    )
+    return require_permission("approve_requests", "the Approval Center")
 
 
 # =========================================================
@@ -1352,7 +1355,9 @@ def reject_request(request_id):
 @app.route("/audit")
 def audit_page():
 
-    reviewer, response = require_reviewer()
+    reviewer, response = require_permission(
+        "view_audit_logs", "the Audit Trail"
+    )
 
     if response:
         return response
@@ -1373,7 +1378,7 @@ def audit_page():
 @app.route("/api/agent/audit")
 def audit():
 
-    reviewer, response = require_reviewer()
+    reviewer, response = require_permission("view_audit_logs")
 
     if response:
         return jsonify({
@@ -1471,7 +1476,9 @@ def health():
 @app.route("/execution")
 def execution_page():
 
-    reviewer, response = require_reviewer()
+    reviewer, response = require_permission(
+        "execute_requests", "the Execution Center"
+    )
 
     if response:
         return response
@@ -1585,7 +1592,7 @@ def check_execution_policy(service_request):
 )
 def execute_request(request_id):
 
-    reviewer, response = require_reviewer()
+    reviewer, response = require_permission("execute_requests")
 
     if response:
         return response

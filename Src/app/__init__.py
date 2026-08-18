@@ -1,37 +1,18 @@
-from flask import Flask
+"""
+Secure Agentic-AI Platform.
 
-from app.models import db
+The application is created in app.py at the project root. This package
+holds what it is built from:
 
+    ai_agent      understanding, field collection, grounded answers
+    rag           retrieval over the verified knowledge base
+    workflows     planning and controlled execution
+    tools         the only code that changes institutional state
+    security      role based authorization
+    models        database models
+    trace         a readable log of what the agent decided and why
+"""
 
-def create_app():
+APP_NAME = "Secure Agentic-AI Platform"
 
-    app = Flask(__name__)
-
-    # =====================================================
-    # CONFIGURATION
-    # =====================================================
-
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        "sqlite:///secure_agentic_ai.db"
-    )
-
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-
-    # =====================================================
-    # INITIALIZE DATABASE
-    # =====================================================
-
-    db.init_app(app)
-
-
-    # =====================================================
-    # CREATE DATABASE TABLES
-    # =====================================================
-
-    with app.app_context():
-
-        db.create_all()
-
-
-    return app
+APP_VERSION = "1.0.0"

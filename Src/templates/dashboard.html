@@ -747,7 +747,7 @@
                 Dashboard
             </a>
 
-            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+            {% if can_do("approve_requests") %}
 
             <a href="/approval">
                 Approval Center
@@ -1345,7 +1345,7 @@
                 </a>
 
 
-                {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+                {% if can_do("approve_requests") %}
 
                 <a href="/approval" class="quick-action-card">
                     <span class="quick-action-icon">🔐</span>
@@ -1361,7 +1361,7 @@
                 </a>
 
 
-                {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+                {% if can_do("approve_requests") %}
 
                 <a href="/audit" class="quick-action-card">
                     <span class="quick-action-icon">📜</span>
