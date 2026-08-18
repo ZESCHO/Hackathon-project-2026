@@ -1,4 +1,6 @@
-from datetime import datetime
+import re
+import secrets
+from datetime import datetime, timedelta
 import requests
 
 from flask import (
@@ -12,11 +14,22 @@ from flask import (
     flash
 )
 import os
+
+from dotenv import load_dotenv
+
+# Load .env before anything reads os.environ, so SECRET_KEY and the
+# model settings actually take effect.
+load_dotenv()
+
 from app.ai_agent import understand_request
 
-from app.models import db, AuditLog,User
+from app.models import db, AuditLog, User
 from app.models.request import ServiceRequest
-from app.ollama_client import ask_model
+from app.models.workflow import Workflow
+from app.db_migrate import sync_columns, migrate_users
+from app.workflows.executor import create_workflow, execute_workflow
+from app.security import can
+from app import trace
 
 # =========================================================
 # FLASK APP
@@ -29,25 +42,198 @@ app.secret_key = os.environ.get(
     "secure-agentic-ai-development-key"
 )
 
-@app.route("/chat", methods=["POST"])
+# Without this a session cookie is discarded when the browser closes,
+# so users had to sign in on every visit.
+app.permanent_session_lifetime = timedelta(days=14)
 
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
+
+# Only these categories may result in a filed service request.
+# "information" is answered from verified sources and "unknown" is
+# small talk; neither may create an institutional action.
+ACTIONABLE_CATEGORIES = {
+    "certificate",
+    "maintenance",
+    "laboratory",
+    "grievance"
+}
+
+# How many turns of chat history to carry into the model.
+MAX_HISTORY_TURNS = 12
+
+# Window in which a second request of the same category from the same
+# user is treated as an accidental duplicate rather than a new one.
+DUPLICATE_WINDOW_SECONDS = 120
+
+
+def _recent_duplicate(user, category):
+    """
+    Find a still-pending request this user just filed in this category.
+    """
+
+    cutoff = datetime.utcnow() - timedelta(
+        seconds=DUPLICATE_WINDOW_SECONDS
+    )
+
+    return ServiceRequest.query.filter(
+        ServiceRequest.user_id == user.id,
+        ServiceRequest.category.ilike(category),
+        ServiceRequest.status == "Pending Approval",
+        ServiceRequest.created_at >= cutoff
+    ).order_by(
+        ServiceRequest.created_at.desc()
+    ).first()
+
+
+@app.route("/chat", methods=["POST"])
 def chat():
-    
-    data = request.get_json()
-    user_message = data.get("message")
-    history = session.setdefault("chat_history", [])
+
+    data = request.get_json(silent=True) or {}
+
+    user = get_current_user()
+
+    if not can(user, "use_assistant"):
+        return jsonify({
+            "reply": {
+                "message": "Please login before using the assistant.",
+                "status": "complete",
+                "category": "unknown",
+                "sources": [],
+                "grounded": False
+            }
+        }), 401
+
+    user_message = (data.get("message") or "").strip()
+
+    if not user_message:
+        return jsonify({
+            "reply": {
+                "message": "Please enter a message.",
+                "status": "complete",
+                "category": "unknown",
+                "sources": [],
+                "grounded": False
+            }
+        }), 400
+
+    if len(user_message) > 2000:
+        return jsonify({
+            "reply": {
+                "message": "That message is too long. Please shorten it.",
+                "status": "complete",
+                "category": "unknown",
+                "sources": [],
+                "grounded": False
+            }
+        }), 400
+
+    trace.start_turn(user_message, user=user.email)
+
+    history = session.get("chat_history", [])
     history.append({"role": "user", "content": user_message})
-    user_request = understand_request(user_message, history)
-    history.append({"role": "bot", "content": user_request["message"]})
-    session["chat_history"] = history
+
+    user_request = understand_request(
+        user_message,
+        history[-MAX_HISTORY_TURNS:]
+    )
+
+    category = user_request.get("category", "unknown")
+
+    # -----------------------------------------------------
+    # FILE THE REQUEST ONCE EVERY REQUIRED FIELD IS PRESENT
+    # -----------------------------------------------------
+
+    if (
+        user_request.get("status") == "complete"
+        and category in ACTIONABLE_CATEGORIES
+    ):
+
+        fields = user_request.get("fields", {})
+
+        description = " | ".join(
+            f"{key}: {value}"
+            for key, value in fields.items()
+        )
+
+        # A user answering a follow-up question after their request was
+        # already filed would otherwise open a second, near-empty one.
+        duplicate = _recent_duplicate(user, category)
+
+        if duplicate is not None:
+
+            user_request["request_id"] = duplicate.id
+
+            user_request["message"] = (
+                f"You already have a {category} request filed as "
+                f"request #{duplicate.id}, still waiting for approval. "
+                f"I haven't filed a duplicate."
+            )
+
+            session["chat_history"] = []
+
+            trace.decision(
+                f"NOT FILED - duplicate of request #{duplicate.id}"
+            )
+            trace.reply(user_request["message"])
+
+            return jsonify({"reply": user_request})
+
+        service_request = create_approval_request(
+            user=user,
+            service=category.capitalize(),
+            description=description,
+            fields=fields,
+            category=category
+        )
+
+        user_request["request_id"] = service_request.id
+
+        user_request["message"] = (
+            f"Your {category} request has been filed as "
+            f"request #{service_request.id} and is waiting for "
+            f"human approval."
+        )
+
+        history = []
+
+        trace.decision(
+            f"FILED request #{service_request.id} "
+            f"({category}) - awaiting human approval"
+        )
+
+    else:
+        history.append({
+            "role": "bot",
+            "content": user_request.get("message", "")
+        })
+
+        trace.decision(
+            f"NOT FILED - category={category}, "
+            f"status={user_request.get('status')}, "
+            f"missing={user_request.get('missing')}"
+        )
+
+    session["chat_history"] = history[-MAX_HISTORY_TURNS:]
+
+    trace.reply(
+        user_request.get("clarification_question")
+        or user_request.get("message", "")
+    )
+
     return jsonify({"reply": user_request})
 
-    
+
 # =========================================================
 # DATABASE CONFIGURATION
 # =========================================================
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URI",
+    "sqlite:///database.db"
+)
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -59,7 +245,22 @@ db.init_app(app)
 # =========================================================
 
 with app.app_context():
+
+    # Rebuild the users table onto username/registration_number before
+    # create_all(), so the model and the table agree.
+    users_migration = migrate_users(db)
+
+    if users_migration:
+        print("Database:", users_migration)
+
     db.create_all()
+
+    # Columns added to a model after the database already existed are
+    # not created by create_all(); add them in place.
+    added_columns = sync_columns(db)
+
+    if added_columns:
+        print("Database columns added:", ", ".join(added_columns))
 
 # ============================================================
 # AI RISK & POLICY ENGINE
@@ -472,13 +673,17 @@ def grievance():
 def create_approval_request(
     user,
     service,
-    description
+    description,
+    fields=None,
+    category=None
 ):
 
     if not user:
         raise ValueError(
             "A logged-in user is required."
         )
+
+    fields = fields or {}
 
     new_request = ServiceRequest(
 
@@ -494,11 +699,24 @@ def create_approval_request(
 
         confidence=1.0,
 
-        requires_approval=True
+        requires_approval=True,
+
+        fields_json=fields
 
     )
 
     db.session.add(new_request)
+
+    db.session.flush()
+
+
+    # Plan the whole sequence up front, so a reviewer can see what the
+    # platform intends to do before approving any part of it.
+    workflow, plan = create_workflow(
+        new_request,
+        (category or service).lower(),
+        fields
+    )
 
     db.session.commit()
 
@@ -572,7 +790,7 @@ def grievance_submit():
         flash("Please login before submitting a grievance.")
         return redirect(url_for("login"))
 
-    name = request.form.get("name", "").strip() or user.name
+    name = user.name
     category = request.form.get("category", "").strip()
     priority = request.form.get("priority", "").strip()
     subject = request.form.get("subject", "").strip()
@@ -586,7 +804,15 @@ def grievance_submit():
             f"Category: {category} | "
             f"Priority: {priority} | "
             f"{description}"
-        )
+        ),
+        fields={
+            "subject": subject,
+            "description": description,
+            "category": category,
+            "priority": priority,
+            "reported_by": name
+        },
+        category="grievance"
     )
 
     return render_template(
@@ -615,8 +841,9 @@ def laboratory_book():
         flash("Please login before submitting a laboratory booking.")
         return redirect(url_for("login"))
 
-    name = request.form.get("name", "").strip() or user.name
-    student_id = request.form.get("student_id", "").strip() or (user.student_id or "N/A")
+    # Identity is taken from the session, not the form.
+    name = user.name
+    registration_number = user.registration_number
     laboratory_name = request.form.get("laboratory", "").strip()
     booking_date = request.form.get("date", "").strip()
     booking_time = request.form.get("time", "").strip()
@@ -629,9 +856,18 @@ def laboratory_book():
             f"{laboratory_name} on "
             f"{booking_date} from {booking_time}. "
             f"Student: {name}. "
-            f"Student ID: {student_id}. "
+            f"Registration No: {registration_number}. "
             f"Purpose: {purpose}"
-        )
+        ),
+        fields={
+            "laboratory_name": laboratory_name,
+            "booking_date": booking_date,
+            "booking_time": booking_time,
+            "purpose": purpose,
+            "registration_number": registration_number,
+            "reported_by": name
+        },
+        category="laboratory"
     )
 
     return render_template(
@@ -661,7 +897,7 @@ def maintenance_request():
         flash("Please login before submitting a maintenance request.")
         return redirect(url_for("login"))
 
-    name = request.form.get("name", "").strip() or user.name
+    name = user.name
     location = request.form.get("location", "").strip()
     room = request.form.get("room", "").strip()
     category = request.form.get("category", "").strip()
@@ -678,7 +914,16 @@ def maintenance_request():
             f"Priority: {priority} | "
             f"Reported by: {name} | "
             f"{description}"
-        )
+        ),
+        fields={
+            "location": location,
+            "room": room,
+            "description": description,
+            "category": category,
+            "priority": priority,
+            "reported_by": name
+        },
+        category="maintenance"
     )
 
     return render_template(
@@ -717,15 +962,12 @@ def certificate_request():
     # GET FORM DATA
     # --------------------------------------------------------
 
-    student_name = request.form.get(
-        "student_name",
-        ""
-    ).strip()
+    # Identity comes from the session, never from the form. A posted
+    # student_id would let anyone request a certificate in someone
+    # else's name.
+    student_name = user.name
 
-    student_id = request.form.get(
-        "student_id",
-        ""
-    ).strip()
+    registration_number = user.registration_number
 
     certificate_type = request.form.get(
         "certificate_type",
@@ -741,20 +983,6 @@ def certificate_request():
     # --------------------------------------------------------
     # VALIDATION
     # --------------------------------------------------------
-
-    if not student_name:
-
-        flash("Please enter your name.")
-
-        return redirect(url_for("certificate"))
-
-
-    if not student_id:
-
-        flash("Please enter your Student ID.")
-
-        return redirect(url_for("certificate"))
-
 
     if not certificate_type:
 
@@ -782,9 +1010,18 @@ def certificate_request():
 
         description=(
             f"{certificate_type} for {student_name}. "
-            f"Student ID: {student_id}. "
+            f"Registration No: {registration_number}. "
             f"Purpose: {purpose}"
-        )
+        ),
+
+        fields={
+            "certificate_type": certificate_type,
+            "purpose": purpose,
+            "registration_number": registration_number,
+            "reported_by": student_name
+        },
+
+        category="certificate"
 
     )
 
@@ -804,7 +1041,7 @@ def certificate_request():
 
     print("Student:", student_name)
 
-    print("Student ID:", student_id)
+    print("Registration No:", registration_number)
 
     print("Certificate:", certificate_type)
 
@@ -836,53 +1073,55 @@ def certificate_request():
 # ADMIN / REVIEWER ACCESS CONTROL
 # ============================================================
 
-def require_reviewer():
+@app.context_processor
+def inject_permissions():
+    """
+    Give templates the same permission check the routes use.
 
-    # Get the currently logged-in user
+    Without this a template decides what to show by naming roles
+    inline, which drifts from the table the routes enforce: a link
+    stays visible to someone the route then refuses.
+    """
+
+    def can_do(permission):
+        return can(get_current_user(), permission)
+
+    return {"can_do": can_do}
+
+
+def require_permission(permission, area="this area"):
+    """
+    Gate a page on a permission rather than on a role name.
+
+    Returns (user, None) when allowed, or (None, response) with a
+    redirect to follow. Checking a permission means a new role only has
+    to be added to the table in app/security/permissions.py, with no
+    route left behind still naming the old roles.
+    """
+
     user = get_current_user()
-
-    # --------------------------------------------------------
-    # NOT LOGGED IN
-    # --------------------------------------------------------
 
     if user is None:
 
-        flash(
-            "Please login to access the Approval Center."
-        )
+        flash(f"Please login to access {area}.")
 
-        return None, redirect(
-            url_for("login")
-        )
+        return None, redirect(url_for("login"))
 
+    if not can(user, permission):
 
-    # --------------------------------------------------------
-    # CHECK ROLE
-    # --------------------------------------------------------
+        flash("You are not authorized to access this area.")
 
-    role = (user.role or "").upper().strip()
+        return None, redirect(url_for("home"))
+
+    return user, None
 
 
-    # --------------------------------------------------------
-    # ADMIN / REVIEWER ALLOWED
-    # --------------------------------------------------------
+def require_reviewer():
+    """
+    Anyone who may approve or reject a request.
+    """
 
-    if role in ["ADMIN", "REVIEWER"]:
-
-        return user, None
-
-
-    # --------------------------------------------------------
-    # STUDENT / UNAUTHORIZED
-    # --------------------------------------------------------
-
-    flash(
-        "You are not authorized to access this area."
-    )
-
-    return None, redirect(
-        url_for("home")
-    )
+    return require_permission("approve_requests", "the Approval Center")
 
 
 # =========================================================
@@ -901,9 +1140,23 @@ def approval_page():
         ServiceRequest.created_at.desc()
     ).all()
 
+    # The stored plan, so the reviewer can see the intended steps and
+    # the policy findings before approving anything.
+    request_plans = {}
+
+    for item in requests:
+
+        workflow = Workflow.query.filter_by(
+            request_id=item.id
+        ).first()
+
+        if workflow and workflow.plan:
+            request_plans[item.id] = workflow.plan
+
     return render_template(
         "approval.html",
-        requests=requests
+        requests=requests,
+        request_plans=request_plans
     )
 
 
@@ -988,10 +1241,14 @@ def approve_request(request_id):
 
         title="Request Approved",
 
+        status_label="Approved",
+
+        request_id=service_request.id,
+
         message=(
-            "The request has been approved "
-            "and the decision has been recorded "
-            "in the audit trail."
+            "The request has been approved and the decision has been "
+            "recorded in the audit trail. It can now be executed from "
+            "the Execution Center."
         )
 
     )
@@ -1079,10 +1336,13 @@ def reject_request(request_id):
 
         title="Request Rejected",
 
+        status_label="Rejected",
+
+        request_id=service_request.id,
+
         message=(
-            "The request has been rejected "
-            "and the decision has been recorded "
-            "in the audit trail."
+            "The request has been rejected and the decision has been "
+            "recorded in the audit trail. No action will be carried out."
         )
 
     )
@@ -1095,7 +1355,9 @@ def reject_request(request_id):
 @app.route("/audit")
 def audit_page():
 
-    reviewer, response = require_reviewer()
+    reviewer, response = require_permission(
+        "view_audit_logs", "the Audit Trail"
+    )
 
     if response:
         return response
@@ -1116,7 +1378,7 @@ def audit_page():
 @app.route("/api/agent/audit")
 def audit():
 
-    reviewer, response = require_reviewer()
+    reviewer, response = require_permission("view_audit_logs")
 
     if response:
         return jsonify({
@@ -1214,7 +1476,9 @@ def health():
 @app.route("/execution")
 def execution_page():
 
-    reviewer, response = require_reviewer()
+    reviewer, response = require_permission(
+        "execute_requests", "the Execution Center"
+    )
 
     if response:
         return response
@@ -1328,7 +1592,7 @@ def check_execution_policy(service_request):
 )
 def execute_request(request_id):
 
-    reviewer, response = require_reviewer()
+    reviewer, response = require_permission("execute_requests")
 
     if response:
         return response
@@ -1391,80 +1655,77 @@ def execute_request(request_id):
 
             "success.html",
 
-            title="🛡️ Execution Blocked",
+            title="Execution Blocked",
+
+            status_label=service_request.status,
 
             message=(
-                "This action was blocked by the "
-                "security policy engine.<br><br>"
-                f"<strong>Reason:</strong> "
-                f"{policy_result['reason']}"
-            )
+                "This action was blocked by the security policy "
+                "engine before anything was carried out."
+            ),
+
+            error=policy_result["reason"],
+
+            request_id=service_request.id
 
         )
 
 
     # -----------------------------------------------------
-    # POLICY PASSED
+    # POLICY PASSED - RUN THE PLANNED WORKFLOW
+    # -----------------------------------------------------
+
+    outcome = execute_workflow(service_request)
+
+
+    # -----------------------------------------------------
+    # A TOOL REFUSED: THE REQUEST IS NOT EXECUTED
+    # -----------------------------------------------------
+
+    if not outcome["ok"]:
+
+        db.session.commit()
+
+        return render_template(
+            "success.html",
+            title="Execution Failed",
+            status_label="Approved - not executed",
+            message=(
+                "The request was approved, but the workflow could not "
+                "be completed. Nothing has been changed."
+            ),
+            error=outcome["error"],
+            steps=outcome["results"],
+            request_id=service_request.id
+        )
+
+
+    # -----------------------------------------------------
+    # EVERY STEP COMPLETED
     # -----------------------------------------------------
 
     service_request.status = "Executed"
 
     service_request.updated_at = datetime.utcnow()
 
-
-    # -----------------------------------------------------
-    # AUDIT SUCCESSFUL EXECUTION
-    # -----------------------------------------------------
-
-    audit = AuditLog(
-
-        request_id=service_request.id,
-
-        user_id=service_request.user_id,
-
-        event_type="EXECUTION",
-
-        action="Request Executed",
-
-        description=(
-            f"Request #{service_request.id} passed "
-            f"the execution policy and was executed."
-        ),
-
-        actor_type="Controlled Execution",
-
-        status="Executed",
-
-        policy_checked=True,
-
-        approval_required=True,
-
-        approval_status="Approved",
-
-        tool_name="Controlled Execution Engine"
-
-    )
-
-
-    db.session.add(audit)
-
     db.session.commit()
-
-
-    # -----------------------------------------------------
-    # SUCCESS
-    # -----------------------------------------------------
 
     return render_template(
 
         "success.html",
 
-        title="⚡ Action Executed",
+        title="Action Executed",
+
+        status_label="Executed",
 
         message=(
-            "The request passed the security policy "
-            "check and was successfully executed."
-        )
+            "The request passed the security policy check and every "
+            "planned step was carried out."
+        ),
+
+        steps=outcome["results"],
+
+        request_id=service_request.id
 
     )
 
@@ -1504,62 +1765,57 @@ def register():
     if request.method == "GET":
         return render_template("register.html")
 
-    # Get form data
-    name = request.form.get("name", "").strip()
-    email = request.form.get("email", "").strip().lower()
-    student_id = request.form.get("student_id", "").strip()
+    username = request.form.get("username", "").strip()
+
+    registration_number = request.form.get(
+        "registration_number", ""
+    ).strip().upper()
+
     password = request.form.get("password", "")
-    confirm_password = request.form.get(
-        "confirm_password",
-        ""
-    )
+
+    confirm_password = request.form.get("confirm_password", "")
 
     # --------------------------------------------------------
     # VALIDATION
     # --------------------------------------------------------
 
-    if not name or not email or not student_id or not password:
-        flash("Please fill in all required fields.")
+    if not username or not registration_number or not password:
+        flash("Please fill in all fields.")
+        return redirect(url_for("register"))
+
+    if len(username) < 3:
+        flash("Username must be at least 3 characters.")
+        return redirect(url_for("register"))
+
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", username):
+        flash(
+            "Username may only contain letters, numbers, "
+            "dots, dashes and underscores."
+        )
         return redirect(url_for("register"))
 
     if password != confirm_password:
         flash("Passwords do not match.")
         return redirect(url_for("register"))
 
-    if len(password) < 6:
-        flash("Password must contain at least 6 characters.")
+    if len(password) < 8:
+        flash("Password must contain at least 8 characters.")
         return redirect(url_for("register"))
 
     # --------------------------------------------------------
-    # CHECK EXISTING EMAIL
+    # UNIQUENESS
     # --------------------------------------------------------
 
-    existing_email = User.query.filter_by(
-        email=email
-    ).first()
+    if User.query.filter(
+        db.func.lower(User.username) == username.lower()
+    ).first():
+        flash("That username is already taken.")
+        return redirect(url_for("register"))
 
-    if existing_email:
-
-        flash(
-            "An account with this email already exists."
-        )
-
-        return redirect(url_for("login"))
-
-    # --------------------------------------------------------
-    # CHECK EXISTING STUDENT ID
-    # --------------------------------------------------------
-
-    existing_student = User.query.filter_by(
-        student_id=student_id
-    ).first()
-
-    if existing_student:
-
-        flash(
-            "This Student ID is already registered."
-        )
-
+    if User.query.filter_by(
+        registration_number=registration_number
+    ).first():
+        flash("That registration number is already registered.")
         return redirect(url_for("register"))
 
     # --------------------------------------------------------
@@ -1567,24 +1823,17 @@ def register():
     # --------------------------------------------------------
 
     new_user = User(
-
-        name=name,
-
-        email=email,
-
-        student_id=student_id,
-
+        username=username,
+        registration_number=registration_number,
+        name=username,
         role="STUDENT",
-
         is_active=True
-
     )
 
     # NEVER store the password directly
     new_user.set_password(password)
 
     db.session.add(new_user)
-
     db.session.commit()
 
     print()
@@ -1592,18 +1841,16 @@ def register():
     print("NEW USER REGISTERED")
     print("====================================")
     print("User ID:", new_user.id)
-    print("Name:", new_user.name)
-    print("Email:", new_user.email)
-    print("Student ID:", new_user.student_id)
+    print("Username:", new_user.username)
+    print("Registration No:", new_user.registration_number)
     print("Role:", new_user.role)
     print("====================================")
     print()
 
-    flash(
-        "Account created successfully. Please login."
-    )
+    flash("Account created successfully. Please login.")
 
     return redirect(url_for("login"))
+
 
 # ============================================================
 # LOGIN
@@ -1616,59 +1863,32 @@ def login():
     if request.method == "GET":
         return render_template("login.html")
 
-    # Get login information
-    email = request.form.get(
-        "email",
-        ""
-    ).strip().lower()
+    identifier = request.form.get("username", "").strip()
 
-    password = request.form.get(
-        "password",
-        ""
-    )
+    password = request.form.get("password", "")
 
-    # --------------------------------------------------------
-    # BASIC VALIDATION
-    # --------------------------------------------------------
-
-    if not email or not password:
-
-        flash(
-            "Please enter your email and password."
-        )
-
+    if not identifier or not password:
+        flash("Please enter your username and password.")
         return redirect(url_for("login"))
 
-    # --------------------------------------------------------
-    # FIND USER
-    # --------------------------------------------------------
-
-    user = User.query.filter_by(
-        email=email
+    # Either identifier works, so nobody is locked out for using the
+    # one they happen to remember.
+    user = User.query.filter(
+        db.or_(
+            db.func.lower(User.username) == identifier.lower(),
+            User.registration_number == identifier.upper(),
+            db.func.lower(User.email) == identifier.lower()
+        )
     ).first()
 
-    # --------------------------------------------------------
-    # VERIFY USER
-    # --------------------------------------------------------
-
+    # The same message either way: saying which half was wrong tells an
+    # attacker which usernames exist.
     if user is None or not user.check_password(password):
-
-        flash(
-            "Invalid email or password."
-        )
-
+        flash("Invalid username or password.")
         return redirect(url_for("login"))
 
-    # --------------------------------------------------------
-    # CHECK ACCOUNT STATUS
-    # --------------------------------------------------------
-
     if not user.is_active:
-
-        flash(
-            "Your account has been disabled."
-        )
-
+        flash("Your account has been disabled.")
         return redirect(url_for("login"))
 
     # --------------------------------------------------------
@@ -1677,26 +1897,29 @@ def login():
 
     session.clear()
 
+    # Keep the sign-in across browser restarts.
+    session.permanent = True
+
     session["user_id"] = user.id
     session["user_name"] = user.name
     session["user_role"] = user.role
     session["user_email"] = user.email
+    session["registration_number"] = user.registration_number
 
     print()
     print("====================================")
     print("USER LOGIN")
     print("====================================")
     print("User ID:", user.id)
-    print("Name:", user.name)
+    print("Username:", user.username)
     print("Role:", user.role)
     print("====================================")
     print()
 
-    flash(
-        f"Welcome back, {user.name}!"
-    )
+    flash(f"Welcome back, {user.name}!")
 
     return redirect(url_for("home"))
+
 
 # ============================================================
 # LOGOUT
@@ -1724,34 +1947,50 @@ def logout():
 # =========================================================
 
 def create_default_admin():
+    """
+    Ensure an administrator account exists.
+
+    The password is only set when the account is first created, or when
+    ADMIN_PASSWORD is supplied. Resetting it on every start would undo
+    any password the administrator had chosen.
+    """
 
     with app.app_context():
 
-        admin = User.query.filter_by(
-            email="admin@secureai.com"
-        ).first()
+        admin = User.query.filter_by(username="admin").first()
+
+        requested_password = os.environ.get("ADMIN_PASSWORD")
 
         if admin is None:
 
+            # Fall back to the pre-migration account if it is still
+            # around under its old identity.
+            admin = User.query.filter_by(role="ADMIN").first()
+
+        if admin is None:
+
+            password = requested_password or secrets.token_urlsafe(12)
+
             admin = User(
+                username="admin",
+                registration_number="ADMIN-0001",
                 name="System Administrator",
-                email="admin@secureai.com",
                 role="ADMIN",
                 is_active=True
             )
 
-            admin.set_password("Admin@123")
+            admin.set_password(password)
 
             db.session.add(admin)
             db.session.commit()
 
             print()
             print("====================================")
-            print("✅ ADMIN ACCOUNT CREATED")
+            print("ADMIN ACCOUNT CREATED")
             print("====================================")
-            print("Email: admin@secureai.com")
-            print("Password: Admin@123")
-            print("Role: ADMIN")
+            print("Username:", admin.username)
+            print("Password:", password)
+            print("Save this now; it is not shown again.")
             print("====================================")
             print()
 
@@ -1760,17 +1999,24 @@ def create_default_admin():
             admin.role = "ADMIN"
             admin.is_active = True
 
-            admin.set_password("Admin@123")
+            if not admin.username:
+                admin.username = "admin"
+
+            if requested_password:
+                admin.set_password(requested_password)
 
             db.session.commit()
 
             print()
             print("====================================")
-            print("✅ ADMIN ACCOUNT READY")
+            print("ADMIN ACCOUNT READY")
             print("====================================")
-            print("Email: admin@secureai.com")
-            print("Password: Admin@123")
-            print("Role: ADMIN")
+            print("Username:", admin.username)
+            print(
+                "Password: unchanged"
+                if not requested_password
+                else "Password: reset from ADMIN_PASSWORD"
+            )
             print("====================================")
             print()
 

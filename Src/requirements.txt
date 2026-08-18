@@ -5,4 +5,3 @@ Flask-Login
 Flask-JWT-Extended
 Werkzeug
 requests
-openai

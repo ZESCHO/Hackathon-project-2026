@@ -633,7 +633,76 @@ textarea:focus,
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    gap: 56px;
+    /* Two columns on a wide screen: what the platform promises on the
+       left, the form on the right. Without this the card floated in a
+       lot of empty space. */
+    max-width: 1080px;
+    margin: 0 auto;
     padding: 40px 20px !important;
+}
+
+.auth-brand {
+    flex: 1 1 0;
+    max-width: 460px;
+}
+
+.auth-brand h2 {
+    font-size: 1.9rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--text-strong);
+    margin-bottom: 10px;
+}
+
+.auth-brand-lead {
+    color: var(--muted);
+    margin-bottom: 26px;
+}
+
+.auth-brand-points {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.auth-brand-points li {
+    position: relative;
+    padding-left: 18px;
+    margin-bottom: 18px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.65;
+}
+
+.auth-brand-points li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+}
+
+.auth-brand-points strong {
+    display: block;
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* The form is the point of the page; below this width the panel is
+   supporting text competing for the same space, so it goes. */
+@media (max-width: 900px) {
+
+    .auth-brand {
+        display: none;
+    }
+
+    .auth-container {
+        gap: 0;
+    }
 }
 
 .auth-card {
@@ -1033,6 +1102,10 @@ textarea:focus,
     max-width: 80%;
     word-wrap: break-word;
     line-height: 1.5;
+    /* The agent sends its list of missing details one per line.
+       Without this, HTML collapses those newlines into spaces and the
+       whole list runs together on one line. */
+    white-space: pre-wrap;
 }
 
 .user-message .ai-message-content {
@@ -1045,6 +1118,34 @@ textarea:focus,
     background: rgba(125, 211, 252, 0.12);
     border: 1px solid rgba(125, 211, 252, 0.2);
     color: var(--text);
+}
+
+/* Bot replies stack the answer above its source citation. */
+.bot-message {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.ai-sources,
+.ai-unverified {
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    max-width: 80%;
+}
+
+.ai-sources {
+    background: rgba(74, 222, 128, 0.12);
+    border: 1px solid rgba(74, 222, 128, 0.28);
+    color: #4ade80;
+}
+
+.ai-unverified {
+    background: rgba(250, 204, 21, 0.12);
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    color: #facc15;
 }
 
 .ai-thinking {
@@ -1351,4 +1452,303 @@ html[data-theme="light"] .empty-state {
     .navbar nav a {
         padding: 8px 10px !important;
     }
+}
+
+/* =========================================================
+   WORKFLOW STEP RESULTS
+   ========================================================= */
+
+.workflow-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.workflow-step {
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background: rgba(125, 211, 252, 0.06);
+    border: 1px solid rgba(125, 211, 252, 0.16);
+    border-left: 3px solid var(--primary);
+}
+
+.workflow-step.step-satisfied {
+    border-left-color: #a78bfa;
+}
+
+.workflow-step.step-skipped {
+    border-left-color: rgba(148, 163, 184, 0.6);
+    opacity: 0.75;
+}
+
+.workflow-step-head {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.5;
+}
+
+.step-status {
+    flex: 0 0 auto;
+}
+
+.step-summary {
+    flex: 1 1 auto;
+}
+
+.step-detail {
+    display: grid;
+    grid-template-columns: minmax(90px, max-content) 1fr;
+    gap: 4px 14px;
+    margin: 10px 0 0 30px;
+    font-size: 0.86rem;
+}
+
+.step-detail dt {
+    color: var(--muted);
+}
+
+.step-detail dd {
+    margin: 0;
+    word-break: break-word;
+}
+
+.info-card.policy-blocked {
+    border-left: 3px solid #f87171;
+}
+
+/* =========================================================
+   PLAN AND POLICY PANELS ON THE APPROVAL PAGE
+   ========================================================= */
+
+.plan-panel,
+.policy-panel {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(125, 211, 252, 0.05);
+    border: 1px solid rgba(125, 211, 252, 0.16);
+}
+
+.policy-panel {
+    background: rgba(250, 204, 21, 0.06);
+    border-color: rgba(250, 204, 21, 0.22);
+}
+
+.policy-note {
+    margin-top: 10px;
+    padding-left: 10px;
+    border-left: 2px solid rgba(250, 204, 21, 0.5);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.policy-note-blocking {
+    border-left-color: var(--danger);
+}
+
+.policy-source {
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-right: 6px;
+}
+
+.policy-flag {
+    display: inline-block;
+    padding: 1px 8px;
+    margin-right: 6px;
+    border-radius: 999px;
+    background: rgba(248, 113, 113, 0.16);
+    border: 1px solid rgba(248, 113, 113, 0.4);
+    color: var(--danger);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.plan-steps {
+    margin: 10px 0 0 18px;
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+
+.plan-step-human {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.plan-actor {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-left: 6px;
+}
+
+.workflow-step.step-rolled_back {
+    border-left-color: var(--warning);
+    opacity: 0.85;
+}
+
+/* =========================================================
+   THINKING INDICATOR
+   ========================================================= */
+
+.ai-thinking .ai-message-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.thinking-label {
+    opacity: 0.85;
+}
+
+.thinking-dots {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.thinking-dots i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.35;
+    animation: thinking-pulse 1.2s infinite ease-in-out;
+}
+
+.thinking-dots i:nth-child(2) { animation-delay: 0.18s; }
+.thinking-dots i:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes thinking-pulse {
+    0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+    30%           { opacity: 1;    transform: translateY(-3px); }
+}
+
+/* Respect users who ask for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+    .thinking-dots i { animation: none; opacity: 0.6; }
+}
+
+.ai-send-btn:disabled,
+#ai-input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* =========================================================
+   IDENTITY PANEL
+
+   Who the request is being filed as. Read-only: identity comes
+   from the session, never from a form field, so a student cannot
+   file a request in someone else's name.
+   ========================================================= */
+
+.identity-panel {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+    background: rgba(125, 211, 252, 0.07);
+    border: 1px solid rgba(125, 211, 252, 0.18);
+}
+
+.identity-label {
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.identity-meta {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+/* Explanatory text under a form field. */
+.field-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+/* =========================================================
+   AUTH PAGES
+   ========================================================= */
+
+/* Signed-out pages carry no navigation, so the wordmark is centred
+   rather than pushed to one side by a nav that is not there. */
+.navbar.navbar-auth {
+    justify-content: center !important;
+}
+
+/* Show / hide password */
+.password-field {
+    position: relative;
+    display: block;
+}
+
+.password-field input {
+    width: 100%;
+    /* Room for the toggle, so a long password never runs under it. */
+    padding-right: 76px !important;
+    /* Spacing between fields comes from .form-group. Any margin here
+       would make the wrapper taller than the box the toggle is pinned
+       to, and the toggle would sit low. */
+    margin-bottom: 0 !important;
+}
+
+.password-toggle {
+    position: absolute;
+    /* Matched to the input's vertical padding rather than centred, so
+       the button cannot drift if the field grows. */
+    top: 6px;
+    bottom: 6px;
+    right: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px !important;
+    min-width: 62px;
+    border-radius: 8px !important;
+    background: rgba(125, 211, 252, 0.12) !important;
+    color: var(--text) !important;
+    border: 1px solid rgba(125, 211, 252, 0.28) !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: none !important;
+    /* The global button rule lifts on hover with translateY(-2px)
+       !important. On an absolutely positioned control that reads as
+       the button sliding out of its field, so movement is pinned off
+       and only the colour responds. */
+    transform: none !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease !important;
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible,
+.password-toggle:active {
+    transform: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+    background: rgba(125, 211, 252, 0.22) !important;
+    border-color: rgba(125, 211, 252, 0.45) !important;
+}
+
+.password-toggle:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+html[data-theme="light"] .password-toggle {
+    background: rgba(0, 102, 204, 0.08) !important;
+    border-color: rgba(0, 102, 204, 0.25) !important;
 }

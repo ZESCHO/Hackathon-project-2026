@@ -24,7 +24,7 @@
 
         <nav>
             <a href="/">Dashboard</a>
-            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+            {% if can_do("approve_requests") %}
                 <a href="/audit">Audit Trail</a>
             {% endif %}
         </nav>
@@ -62,33 +62,12 @@
                 class="service-form"
             >
 
-                <!-- NAME -->
-                <label for="student_name">
-                    Student Name
-                </label>
-
-                <input
-                    type="text"
-                    id="student_name"
-                    name="student_name"
-                    placeholder="Enter your full name"
-                    required
-                >
-
-
-                <!-- STUDENT ID -->
-                <label for="student_id">
-                    Student ID
-                </label>
-
-                <input
-                    type="text"
-                    id="student_id"
-                    name="student_id"
-                    placeholder="Enter your student ID"
-                    required
-                >
-
+                <!-- IDENTITY (from the signed-in account, not editable) -->
+                <div class="identity-panel">
+                    <span class="identity-label">Submitting as</span>
+                    <strong>{{ session.get("user_name") }}</strong>
+                    <span class="identity-meta">{{ session.get("user_email") }}</span>
+                </div>
 
                 <!-- CERTIFICATE TYPE -->
                 <label for="certificate_type">

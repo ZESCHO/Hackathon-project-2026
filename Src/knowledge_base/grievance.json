@@ -1,0 +1,22 @@
+[
+  {
+    "id": "griev-001",
+    "title": "Grievance categories",
+    "content": "Grievances are categorized as Academic, Hostel, Financial, Harassment, or Administrative. Category must be specified for correct routing."
+  },
+  {
+    "id": "griev-002",
+    "title": "Priority handling",
+    "content": "Harassment and safety-related grievances are always treated as high priority and escalated directly to the Dean's office within 24 hours, bypassing normal queue order."
+  },
+  {
+    "id": "griev-003",
+    "title": "Response SLA",
+    "content": "Standard grievances receive an initial response within 3 working days. Resolution timelines vary by complexity and are communicated to the student directly."
+  },
+  {
+    "id": "griev-004",
+    "title": "Confidentiality",
+    "content": "Grievance details are visible only to the submitting student and authorized reviewers. They are never disclosed to other students or unrelated staff."
+  }
+]

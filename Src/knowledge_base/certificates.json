@@ -1,0 +1,37 @@
+[
+  {
+    "id": "cert-001",
+    "title": "Bonafide Certificate",
+    "content": "A Bonafide Certificate confirms a student is currently enrolled. Required: student ID and purpose (e.g. bank loan, visa, scholarship). Processing time is 2 working days. No fee is charged.",
+    "aliases": [
+      "bonafide",
+      "bona fide",
+      "study certificate",
+      "enrolment certificate"
+    ]
+  },
+  {
+    "id": "cert-002",
+    "title": "Transfer Certificate",
+    "content": "A Transfer Certificate is issued only after all dues (library, hostel, lab) are cleared. Requires a no-dues form signed by all departments. Processing time is 5 working days. Fee: 200 INR.",
+    "aliases": [
+      "transfer",
+      "tc",
+      "leaving certificate"
+    ]
+  },
+  {
+    "id": "cert-003",
+    "title": "Character Certificate",
+    "content": "Character Certificates require no disciplinary record in the current academic year. Issued by the Dean of Student Affairs. Processing time is 3 working days.",
+    "aliases": [
+      "character",
+      "conduct certificate"
+    ]
+  },
+  {
+    "id": "cert-004",
+    "title": "General certificate request rules",
+    "content": "All certificate requests must include full name, student ID, certificate type, and purpose. Incomplete requests will be returned for clarification before processing begins."
+  }
+]

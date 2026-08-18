@@ -12,7 +12,6 @@
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
 
-    <script src="{{ url_for('static', filename='theme.js') }}"></script>
 
     <style>
 
@@ -120,20 +119,10 @@
 
 <body>
 
-<header class="navbar">
+<header class="navbar navbar-auth">
 
     <div class="logo">
-        🤖 Human-in-the-Loop AI
-    </div>
-
-    <nav>
-        <a href="/">Dashboard</a>
-        <a href="/login">Login</a>
-    </nav>
-
-
-    <div style="display: flex; align-items: center; gap: 8px;">
-        <button class="ai-chat-button" onclick="openAIChat()">💬 AI Agent</button>
+        Human-in-the-Loop AI
     </div>
 
 </header>
@@ -141,11 +130,45 @@
 
 <main class="auth-container">
 
-    <section class="auth-card">
+    <aside class="auth-brand">
 
-        <div class="auth-icon">
-            🔐
-        </div>
+        <h2>Secure Agentic-AI Platform</h2>
+
+        <p class="auth-brand-lead">
+            Human-controlled institutional service automation.
+        </p>
+
+        <ul class="auth-brand-points">
+
+            <li>
+                <strong>Grounded, not guessed.</strong>
+                Every policy answer comes from a verified institutional
+                source and cites it. No source, no answer.
+            </li>
+
+            <li>
+                <strong>Nothing happens without a human.</strong>
+                Consequential actions wait for an authorised reviewer.
+                The agent recommends; it never authorises.
+            </li>
+
+            <li>
+                <strong>Fully auditable.</strong>
+                Every request, decision and action is recorded,
+                including the ones that were blocked.
+            </li>
+
+            <li>
+                <strong>Runs entirely on campus.</strong>
+                The model is local. No student data leaves your
+                infrastructure.
+            </li>
+
+        </ul>
+
+    </aside>
+
+    <section class="auth-card">
 
         <h1>
             Create Account
@@ -180,51 +203,47 @@
 
             <div class="form-group">
 
-                <label for="name">
-                    Full Name
+                <label for="username">
+                    Username
                 </label>
 
                 <input
                     type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Enter your full name"
+                    id="username"
+                    name="username"
+                    placeholder="Choose a username"
+                    pattern="[A-Za-z0-9._\-]+"
+                    minlength="3"
+                    autocomplete="username"
                     required
                 >
+
+                <small class="field-hint">
+                    You will sign in with this. Letters, numbers,
+                    dots, dashes and underscores only.
+                </small>
 
             </div>
 
 
             <div class="form-group">
 
-                <label for="student_id">
-                    Student ID
+                <label for="registration_number">
+                    Registration Number
                 </label>
 
                 <input
                     type="text"
-                    id="student_id"
-                    name="student_id"
-                    placeholder="Enter your student ID"
+                    id="registration_number"
+                    name="registration_number"
+                    placeholder="e.g. 25E120A42"
                     required
                 >
 
-            </div>
-
-
-            <div class="form-group">
-
-                <label for="email">
-                    Email
-                </label>
-
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    required
-                >
+                <small class="field-hint">
+                    Your institutional registration number. Requests
+                    are filed against it, so it cannot be changed later.
+                </small>
 
             </div>
 
@@ -235,14 +254,27 @@
                     Password
                 </label>
 
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Create a password"
-                    minlength="6"
-                    required
-                >
+                <div class="password-field">
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        placeholder="Create a password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        class="password-toggle"
+                        data-target="password"
+                        aria-label="Show password"
+                        aria-pressed="false"
+                    >Show</button>
+
+                </div>
 
             </div>
 
@@ -253,14 +285,27 @@
                     Confirm Password
                 </label>
 
-                <input
-                    type="password"
-                    id="confirm_password"
-                    name="confirm_password"
-                    placeholder="Confirm your password"
-                    minlength="6"
-                    required
-                >
+                <div class="password-field">
+
+                    <input
+                        type="password"
+                        id="confirm_password"
+                        name="confirm_password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        placeholder="Confirm your password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        class="password-toggle"
+                        data-target="confirm_password"
+                        aria-label="Show password"
+                        aria-pressed="false"
+                    >Show</button>
+
+                </div>
 
             </div>
 
@@ -269,7 +314,7 @@
                 type="submit"
                 class="auth-button"
             >
-                🚀 Create Account
+                Create Account
             </button>
 
         </form>
@@ -290,31 +335,6 @@
 </main>
 
 
-<!-- AI CHAT MODAL -->
-<div id="ai-chat-modal">
-    <div class="ai-chat-container">
-        <div class="ai-chat-header">
-            <h2>🤖 AI Assistant</h2>
-            <button class="ai-close-btn" onclick="closeAIChat()">✕</button>
-        </div>
-        <div id="ai-chat-box">
-            <div class="ai-message bot-message">
-                <div class="ai-message-content">
-                    Hello! I'm your AI assistant. I can help you with institutional service requests, answer questions about our processes, and guide you through the system. How can I help you today?
-                </div>
-            </div>
-        </div>
-        <div class="ai-chat-footer">
-            <input 
-                type="text" 
-                id="ai-input" 
-                placeholder="Ask me anything..."
-            >
-            <button class="ai-send-btn" onclick="sendAIMessage()">Send</button>
-        </div>
-    </div>
-</div>
-
-
+    <script src="{{ url_for('static', filename='auth.js') }}"></script>
 </body>
 </html>

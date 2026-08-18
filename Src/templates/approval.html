@@ -774,7 +774,7 @@
             Dashboard
         </a>
 
-        {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+        {% if can_do("approve_requests") %}
 
             <a href="/approval">
                 Approval Center
@@ -1015,6 +1015,60 @@
                     {{ item.request_text }}
 
                 </div>
+
+
+                <!-- =================================================
+                     PLANNED STEPS AND POLICY FINDINGS
+
+                     Shown before the approve / reject buttons so the
+                     reviewer sees what the platform intends to do, and
+                     what policy it consulted, before deciding.
+                ================================================= -->
+
+                {% set plan = request_plans.get(item.id) %}
+
+                {% if plan %}
+
+                {% if plan.policy_notes %}
+                <div class="policy-panel">
+
+                    <strong>📕 Policy Findings</strong>
+
+                    {% for note in plan.policy_notes %}
+                    <div class="policy-note {% if note.blocking %}policy-note-blocking{% endif %}">
+
+                        <span class="policy-source">[{{ note.source }}]</span>
+
+                        {% if note.blocking %}
+                        <span class="policy-flag">Conflict</span>
+                        {% endif %}
+
+                        <span class="policy-text">{{ note.message }}</span>
+
+                    </div>
+                    {% endfor %}
+
+                </div>
+                {% endif %}
+
+                <div class="plan-panel">
+
+                    <strong>🧭 Planned Steps</strong>
+
+                    <ol class="plan-steps">
+                        {% for step in plan.steps %}
+                        <li class="plan-step plan-step-{{ step.actor|lower }}">
+                            {{ step.description }}
+                            {% if step.actor == "HUMAN" %}
+                            <span class="plan-actor">requires a human</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ol>
+
+                </div>
+
+                {% endif %}
 
 
 

@@ -1,30 +1,27 @@
-from app.security.authentication import (
-    login_user,
-    logout_user,
-    get_current_user,
-    is_authenticated,
-    login_required
-)
+"""
+Security helpers.
 
-from app.security.authorization import (
-    has_role,
-    role_required
-)
+Authentication lives in app.py, which owns the session. This package
+holds authorization only: what a signed-in user is allowed to do.
+"""
 
 from app.security.permissions import (
+    ROLE_HIERARCHY,
     ROLE_PERMISSIONS,
-    has_permission
+    can,
+    has_permission,
+    normalize_role,
+    outranks,
+    permissions_for
 )
 
 
 __all__ = [
-    "login_user",
-    "logout_user",
-    "get_current_user",
-    "is_authenticated",
-    "login_required",
-    "has_role",
-    "role_required",
+    "ROLE_HIERARCHY",
     "ROLE_PERMISSIONS",
-    "has_permission"
+    "can",
+    "has_permission",
+    "normalize_role",
+    "outranks",
+    "permissions_for"
 ]

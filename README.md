@@ -1,79 +1,142 @@
-# Team Git & GitHub Guide
+# Secure Agentic-AI Platform
 
-Press Ctrl + Shift + V if viewing from VS code
+A campus service platform where an AI agent understands a request,
+plans the steps, retrieves verified institutional information, and
+routes anything consequential to a human before it happens.
 
-Welcome to the team! We have **two repositories** set up:
-1. **`hackathon-prep`**: For notes, study materials, and cheat sheets.
-2. **`hackathon-test-project`**: For our practice codebase.
-
----
-
-## 1. How We Use Each Repo
-
-### A. Prep Repo (`hackathon-prep`)
-* **Rule:** Only work inside your own folder (`members/your-name/`).
-* Direct pushes to `main` are allowed here.
-
-### B. Code Repo (`hackathon-test-project`)
-* **Rule:** **NEVER push directly to `main`**.
-* Always create a new branch for your task, push it, and open a **Pull Request (PR)** on GitHub so someone can approve it.
+Built for the 2026 hackathon.
 
 ---
 
-## 2. Step-by-Step Command Manual
+## What it does
 
-### Step 1: Initial Setup (Do once per repo)
-Clone the repo to your computer:
+Students describe what they need in plain English. The agent:
+
+1. **Understands** the request and collects the details it needs,
+   asking only for what is genuinely missing.
+2. **Answers questions** using only the verified knowledge base in
+   `Src/knowledge_base/`, with citations. If the answer is not in
+   there, it says so instead of guessing.
+3. **Plans** the steps before doing anything, and stores the plan so a
+   reviewer can see the whole sequence before approving it.
+4. **Checks policy** against the knowledge base, citing the rule it
+   applied — restricted labs, notice periods, priority and escalation.
+5. **Waits for a human.** Nothing consequential happens until a
+   reviewer approves it.
+6. **Executes** the approved workflow, creating the real record: a
+   maintenance ticket, a laboratory booking, a certificate, or a routed
+   grievance.
+7. **Audits** every step, including the ones that were blocked.
+
+Four services are supported: certificates, maintenance tickets,
+laboratory bookings and grievance escalation.
+
+---
+
+## Running it
+
+Requires [Ollama](https://ollama.com) with `qwen3:8b` pulled, and
+Python 3.13+.
+
 ```bash
-git clone <REPO_URL>
-cd <REPO_NAME>
+cd Src
+python -m venv venv
+venv/bin/pip install -r requirements.txt
+ollama pull qwen3:8b
+venv/bin/python app.py
+```
+
+Then open http://127.0.0.1:5000
+
+An administrator account is created on first run. Its credentials are
+printed to the terminal — they are deliberately not written down here.
+**Change the password before showing this to anyone.**
+
+### Configuration
+
+`Src/.env` holds local settings. None of them are secrets you need to
+obtain; they only point at your own machine.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SECRET_KEY` | dev value | Flask session signing |
+| `OLLAMA_HOST` | `http://localhost:11434` | Where the model is served |
+| `OLLAMA_MODEL` | `qwen3:8b` | Which model to use |
+| `OLLAMA_TIMEOUT` | `120` | Seconds before a model call gives up |
+| `DATABASE_URI` | `sqlite:///database.db` | Database location |
+
+---
+
+## Testing
+
+```bash
+cd Src
+venv/bin/python smoke_test.py
+```
+
+Runs 40+ end-to-end checks against a temporary database, so it never
+touches your development data. It needs Ollama running, and takes a
+couple of minutes because it makes real model calls.
+
+---
+
+## Layout
+
+```
+Src/
+  app.py                  routes and the request lifecycle
+  smoke_test.py           end-to-end checks
+  knowledge_base/         verified institutional policy (the only
+                          source the agent may answer from)
+  app/
+    ai_agent.py           understanding, field collection, grounded answers
+    ollama_client.py      local model client
+    rag/retriever.py      BM25 search over the knowledge base
+    workflows/planner.py  builds the plan and applies policy rules
+    workflows/executor.py runs an approved plan, audits each step
+    tools/actions.py      the only code that changes institutional state
+    models/               database models
+    db_migrate.py         adds new model columns to an existing database
+  templates/  static/     interface
 ```
 
 ---
 
-### Step 2A: Adding Notes (`hackathon-prep`)
-1. Add your notes inside your folder (`members/your-name/`).
-2. Save changes, then run:
-```bash
-git add .
-git commit -m "Add notes on React hooks"
-git push origin main
-```
+## Design rules
+
+These are the constraints the code is built around. They are worth
+knowing before changing anything.
+
+- **The agent never states policy from memory.** Every institutional
+  answer comes from a retrieved snippet and cites it. No snippet, no
+  answer.
+- **A citation must be real.** The agent can only cite an id that
+  retrieval actually returned, so it cannot make an answer look
+  verified by inventing a source.
+- **Approval is checked twice.** The route checks it, and every tool in
+  `app/tools/actions.py` checks it again rather than trusting its
+  caller.
+- **Ask rather than invent.** If a required detail is missing, the
+  agent asks for it. Extracted values that merely echo the user's
+  message back are rejected.
+- **A failed step undoes the run.** Partial execution is rolled back
+  and reported as undone.
+- **English only.** Messages in other languages are declined, not
+  half-understood — a misread service request becomes a real action.
 
 ---
 
-### Step 2B: Writing Code (`hackathon-test-project`)
+## Status
 
-#### 1. Get the latest code first:
-```bash
-git checkout main
-git pull origin main
-```
+The core loop works end to end: understand, plan, check policy, wait
+for approval, execute, audit.
 
-#### 2. Create and switch to a feature branch:
-```bash
-# Naming convention: feature/your-task-name
-git checkout -b feature/login-screen
-```
+Known gaps, in rough priority order:
 
-#### 3. Save, commit, and push your work:
-```bash
-git add .
-git commit -m "Add login form UI"
-git push origin feature/login-screen
-```
-
-#### 4. Open a Pull Request (PR):
-1. Go to GitHub in your browser.
-2. Click **Compare & pull request**.
-3. Ask a teammate to review and merge it into `main`.
-
----
-
-## 3. Golden Rules to Prevent Issues
-
-1. **Pull Before You Code:** Always run `git pull origin main` before starting a new feature to avoid code conflicts.
-2. **Commit Often:** Small commits (e.g., `git commit -m "Fix button color"`) are easier to fix than one huge commit at the end of the day.
-3. **Descriptive Messages:** Write clear commit messages so others know what changed.
-4. **When in Doubt, Ask:** If Git shows a red error message or mentions a "merge conflict," stop and ask the group!
-
+- No CSRF protection on any form, including approve and execute.
+- `SECRET_KEY` falls back to a hardcoded development value.
+- The default admin password is reset on every startup.
+- `app/routes/`, `app/security/`, `app/agent/agent.py` and `config.py`
+  are not wired into the running application and need either
+  integrating or deleting.
+- The audit trail is not tamper-evident.

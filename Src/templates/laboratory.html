@@ -30,7 +30,7 @@
             <a href="/">Dashboard</a>
             <a href="/certificate">Certificates</a>
             <a href="/maintenance">Maintenance</a>
-            {% if session.get("user_role") in ["ADMIN", "REVIEWER"] %}
+            {% if can_do("approve_requests") %}
                 <a href="/audit">Audit Trail</a>
             {% endif %}
         </nav>
@@ -71,33 +71,12 @@
                 class="service-form"
             >
 
-                <!-- NAME -->
-                <label for="name">
-                    Name
-                </label>
-
-                <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Enter your name"
-                    required
-                >
-
-
-                <!-- STUDENT ID -->
-                <label for="student_id">
-                    Student / Employee ID
-                </label>
-
-                <input
-                    type="text"
-                    id="student_id"
-                    name="student_id"
-                    placeholder="Enter your ID"
-                    required
-                >
-
+                <!-- IDENTITY (from the signed-in account, not editable) -->
+                <div class="identity-panel">
+                    <span class="identity-label">Submitting as</span>
+                    <strong>{{ session.get("user_name") }}</strong>
+                    <span class="identity-meta">{{ session.get("user_email") }}</span>
+                </div>
 
                 <!-- LAB -->
                 <label for="laboratory">
