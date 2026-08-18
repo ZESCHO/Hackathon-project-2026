@@ -633,7 +633,76 @@ textarea:focus,
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    gap: 56px;
+    /* Two columns on a wide screen: what the platform promises on the
+       left, the form on the right. Without this the card floated in a
+       lot of empty space. */
+    max-width: 1080px;
+    margin: 0 auto;
     padding: 40px 20px !important;
+}
+
+.auth-brand {
+    flex: 1 1 0;
+    max-width: 460px;
+}
+
+.auth-brand h2 {
+    font-size: 1.9rem;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--text-strong);
+    margin-bottom: 10px;
+}
+
+.auth-brand-lead {
+    color: var(--muted);
+    margin-bottom: 26px;
+}
+
+.auth-brand-points {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.auth-brand-points li {
+    position: relative;
+    padding-left: 18px;
+    margin-bottom: 18px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.65;
+}
+
+.auth-brand-points li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+}
+
+.auth-brand-points strong {
+    display: block;
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* The form is the point of the page; below this width the panel is
+   supporting text competing for the same space, so it goes. */
+@media (max-width: 900px) {
+
+    .auth-brand {
+        display: none;
+    }
+
+    .auth-container {
+        gap: 0;
+    }
 }
 
 .auth-card {
