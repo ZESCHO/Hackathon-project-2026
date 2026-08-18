@@ -1628,15 +1628,24 @@ html[data-theme="light"] .empty-state {
     width: 100%;
     /* Room for the toggle, so a long password never runs under it. */
     padding-right: 76px !important;
+    /* Spacing between fields comes from .form-group. Any margin here
+       would make the wrapper taller than the box the toggle is pinned
+       to, and the toggle would sit low. */
+    margin-bottom: 0 !important;
 }
 
 .password-toggle {
     position: absolute;
-    top: 50%;
-    right: 8px;
-    transform: translateY(-50%);
-    padding: 6px 12px !important;
-    min-width: 60px;
+    /* Matched to the input's vertical padding rather than centred, so
+       the button cannot drift if the field grows. */
+    top: 6px;
+    bottom: 6px;
+    right: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px !important;
+    min-width: 62px;
     border-radius: 8px !important;
     background: rgba(125, 211, 252, 0.12) !important;
     color: var(--text) !important;
@@ -1644,12 +1653,25 @@ html[data-theme="light"] .empty-state {
     font-size: 0.78rem !important;
     font-weight: 700 !important;
     letter-spacing: 0.03em;
+    line-height: 1;
     cursor: pointer;
     box-shadow: none !important;
+    /* The global button rule lifts on hover with translateY(-2px)
+       !important. On an absolutely positioned control that reads as
+       the button sliding out of its field, so movement is pinned off
+       and only the colour responds. */
+    transform: none !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease !important;
 }
 
-.password-toggle:hover {
-    background: rgba(125, 211, 252, 0.2) !important;
+.password-toggle:hover,
+.password-toggle:focus-visible,
+.password-toggle:active {
+    transform: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+    background: rgba(125, 211, 252, 0.22) !important;
+    border-color: rgba(125, 211, 252, 0.45) !important;
 }
 
 .password-toggle:focus-visible {
