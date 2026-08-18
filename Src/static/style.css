@@ -16,6 +16,10 @@
     --warning: #fbbf24;
     --danger: #f87171;
     --shadow: rgba(3, 7, 18, 0.52);
+    /* Opaque form-field surface. Chrome paints its own colour behind
+       an autofilled field and ignores background-color, so the
+       override needs a solid value rather than a translucent one. */
+    --field: #0c121d;
 }
 
 html[data-theme="light"] {
@@ -34,6 +38,7 @@ html[data-theme="light"] {
     --warning: #d97706;
     --danger: #dc2626;
     --shadow: rgba(0, 0, 0, 0.15);
+    --field: #ffffff;
 }
 
 * {
@@ -322,7 +327,7 @@ textarea {
     padding: 18px 20px !important;
     border-radius: 16px !important;
     border: 1px solid rgba(125, 211, 252, 0.2) !important;
-    background: rgba(7, 12, 20, 0.74) !important;
+    background: var(--field) !important;
     color: var(--text-strong) !important;
     resize: vertical !important;
     font-size: 1rem !important;
@@ -746,7 +751,9 @@ textarea:focus,
     padding: 14px 16px !important;
     border-radius: 12px !important;
     border: 1px solid rgba(148, 163, 184, 0.2) !important;
-    background: rgba(8, 13, 22, 0.7) !important;
+    /* Same token the autofill override paints, so a field Chrome
+       filled and one the user typed look identical. */
+    background: var(--field) !important;
     color: var(--text-strong) !important;
     outline: none !important;
 }
@@ -1925,4 +1932,46 @@ html[data-theme="light"] .password-toggle {
     font-size: 0.76rem !important;
     line-height: 1.5 !important;
     color: var(--muted) !important;
+}
+
+
+/* =========================================================
+   BROWSER AUTOFILL
+
+   Chrome paints an autofilled field with its own light background and
+   will not let background-color override it. An inset box-shadow
+   covers that layer, and -webkit-text-fill-color is needed because the
+   colour property is overridden too. The long transition stops Chrome
+   reapplying its colour a moment after the field is filled.
+   ========================================================= */
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px var(--field) inset !important;
+    box-shadow: 0 0 0 1000px var(--field) inset !important;
+    -webkit-text-fill-color: var(--text-strong) !important;
+    caret-color: var(--text-strong) !important;
+    background-clip: content-box !important;
+    transition: background-color 600000s 0s, color 600000s 0s;
+}
+
+/* Focus still needs its ring, which the override above would remove. */
+.form-group input:-webkit-autofill:focus {
+    -webkit-box-shadow:
+        0 0 0 1000px var(--field) inset,
+        0 0 0 4px rgba(125, 211, 252, 0.12) !important;
+    box-shadow:
+        0 0 0 1000px var(--field) inset,
+        0 0 0 4px rgba(125, 211, 252, 0.12) !important;
+}
+
+/* Firefox uses its own flag and does respect background-color. */
+input:autofill,
+textarea:autofill {
+    background: var(--field) !important;
+    color: var(--text-strong) !important;
 }
