@@ -436,6 +436,107 @@ def main():
     )
 
     # ----------------------------------------------------------
+    section("UNCERTAINTY GATE")
+
+    before = count(ServiceRequest)
+
+    vague = chat("something happened yesterday and I am not happy")
+
+    check(
+        "a vague message is judged uncertain",
+        vague.get("uncertain") is True,
+        f"score={vague.get('confidence_score')}"
+    )
+    check(
+        "an uncertain message files nothing",
+        count(ServiceRequest) == before,
+        f"{count(ServiceRequest) - before} created"
+    )
+    check(
+        "the user is asked to restate",
+        "haven't filed anything yet"
+        in vague.get("clarification_question", "")
+    )
+
+    clear = chat("The fan in G block room 4 has stopped working")
+
+    check(
+        "a clear message is not judged uncertain",
+        clear.get("uncertain") is False,
+        f"score={clear.get('confidence_score')}"
+    )
+    check("a clear message is filed", bool(clear.get("request_id")))
+
+    with app.app_context():
+        stored = db.session.get(ServiceRequest, clear["request_id"])
+        check(
+            "the real confidence is stored, not a constant",
+            stored.confidence is not None and stored.confidence < 1.0,
+            f"confidence={stored.confidence}"
+        )
+
+    # ----------------------------------------------------------
+    section("APPROVAL ROUTING")
+
+    from app.models.approval import Approval
+
+    routed = [
+        ("/grievance/submit", {
+            "category": "Harassment", "priority": "High",
+            "subject": "Ragging",
+            "description": "seniors threatened me in the hostel"
+        }, "Dean of Student Affairs"),
+        ("/certificate/request", {
+            "certificate_type": "Transfer Certificate",
+            "purpose": "moving college"
+        }, "Registrar"),
+        ("/maintenance/request", {
+            "location": "K block", "room": "3", "category": "Plumbing",
+            "priority": "Medium", "description": "tap is leaking"
+        }, "Plumbing"),
+    ]
+
+    for path, payload, expected in routed:
+
+        client.post(path, data=payload)
+
+        with app.app_context():
+            latest = ServiceRequest.query.order_by(
+                ServiceRequest.id.desc()
+            ).first()
+
+            approval = Approval.query.filter_by(
+                request_id=latest.id
+            ).first()
+
+            check(
+                f"{expected} receives its request",
+                approval is not None and approval.routed_to == expected,
+                approval.routed_to if approval else "no approval row"
+            )
+
+    with app.app_context():
+        pending = Approval.query.filter_by(
+            request_id=latest.id
+        ).first()
+        pending_id = latest.id
+
+    client.post(f"/approval/{pending_id}/approve")
+
+    with app.app_context():
+        closed = Approval.query.filter_by(request_id=pending_id).first()
+
+        check(
+            "approving closes the routed approval",
+            closed.status == "APPROVED",
+            closed.status
+        )
+        check(
+            "the decision records who made it",
+            closed.decided_by is not None and closed.decided_at is not None
+        )
+
+    # ----------------------------------------------------------
     section("AUTHORIZATION")
 
     # A student holds none of the reviewer permissions. The POST

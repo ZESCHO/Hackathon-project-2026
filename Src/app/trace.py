@@ -152,3 +152,12 @@ def reply(text):
     """
 
     _write("\nREPLIED TO USER\n" + _block(text) + "\n")
+
+
+def decision_note(summary):
+    """
+    Record a decision the understanding layer made on its own, before
+    the route sees the result.
+    """
+
+    _write(f"\n  {summary}\n")

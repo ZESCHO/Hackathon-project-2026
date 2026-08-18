@@ -26,7 +26,8 @@ from app.ai_agent import understand_request
 from app.models import db, AuditLog, User
 from app.models.request import ServiceRequest
 from app.models.workflow import Workflow
-from app.db_migrate import sync_columns, migrate_users
+from app.models.approval import Approval
+from app.db_migrate import sync_columns, migrate_users, migrate_approvals
 from app.workflows.executor import create_workflow, execute_workflow
 from app.security import can
 from app import trace
@@ -186,7 +187,8 @@ def chat():
             service=category.capitalize(),
             description=description,
             fields=fields,
-            category=category
+            category=category,
+            confidence=user_request.get("confidence_score", 1.0)
         )
 
         user_request["request_id"] = service_request.id
@@ -252,6 +254,11 @@ with app.app_context():
 
     if users_migration:
         print("Database:", users_migration)
+
+    approvals_migration = migrate_approvals(db)
+
+    if approvals_migration:
+        print("Database:", approvals_migration)
 
     db.create_all()
 
@@ -675,7 +682,8 @@ def create_approval_request(
     service,
     description,
     fields=None,
-    category=None
+    category=None,
+    confidence=1.0
 ):
 
     if not user:
@@ -697,7 +705,7 @@ def create_approval_request(
 
         status="Pending Approval",
 
-        confidence=1.0,
+        confidence=confidence,
 
         requires_approval=True,
 
@@ -1140,6 +1148,19 @@ def approval_page():
         ServiceRequest.created_at.desc()
     ).all()
 
+    # Which office each request was routed to, so the queue can be
+    # read as a set of departmental queues rather than one pile.
+    routing = {
+        approval.request_id: approval
+        for approval in Approval.query.all()
+    }
+
+    departments = sorted({
+        approval.routed_to
+        for approval in routing.values()
+        if approval.status == "PENDING"
+    })
+
     # The stored plan, so the reviewer can see the intended steps and
     # the policy findings before approving anything.
     request_plans = {}
@@ -1156,7 +1177,9 @@ def approval_page():
     return render_template(
         "approval.html",
         requests=requests,
-        request_plans=request_plans
+        request_plans=request_plans,
+        routing=routing,
+        departments=departments
     )
 
 
@@ -1187,6 +1210,13 @@ def approve_request(request_id):
     # -----------------------------------------------------
 
     service_request.status = "Approved"
+
+    # Close the routed approval this decision answers.
+    for approval in Approval.query.filter_by(
+        request_id=service_request.id,
+        status="PENDING"
+    ).all():
+        approval.decide(True, reviewer)
 
     db.session.commit()
 
@@ -1282,6 +1312,13 @@ def reject_request(request_id):
     # -----------------------------------------------------
 
     service_request.status = "Rejected"
+
+    # Close the routed approval this decision answers.
+    for approval in Approval.query.filter_by(
+        request_id=service_request.id,
+        status="PENDING"
+    ).all():
+        approval.decide(False, reviewer)
 
     db.session.commit()
 

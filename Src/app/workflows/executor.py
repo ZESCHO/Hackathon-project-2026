@@ -14,6 +14,7 @@ from datetime import datetime
 from app.models import db
 from app.models.audit_log import AuditLog
 from app.models.workflow import Workflow
+from app.models.approval import Approval
 from app.workflows.planner import build_plan
 from app.tools.actions import TOOLS, ToolError
 
@@ -71,6 +72,44 @@ def create_workflow(service_request, category, fields):
     )
 
     db.session.add(workflow)
+
+    db.session.flush()
+
+    # Route the decision to the office policy says owns it, instead of
+    # dropping everything into one queue.
+    department = plan["derived"].get("department") or "Approval Center"
+
+    routing_reason = next(
+        (
+            f"[{note['source']}] {note['title']}"
+            for note in plan["policy_notes"]
+            if note.get("source")
+        ),
+        None
+    )
+
+    approval = Approval(
+        request_id=service_request.id,
+        workflow_id=workflow.id,
+        action=f"Approve {category} request #{service_request.id}",
+        description=service_request.request_text,
+        routed_to=department,
+        routing_reason=routing_reason,
+        required_permission="approve_requests",
+        status="PENDING"
+    )
+
+    db.session.add(approval)
+
+    _audit(
+        service_request,
+        "APPROVAL_REQUESTED",
+        "Approval Routed",
+        f"Routed to {department} for human approval.",
+        "Pending Approval",
+        tool_name="Routing Engine",
+        metadata={"routed_to": department}
+    )
 
     _audit(
         service_request,

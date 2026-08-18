@@ -1025,6 +1025,18 @@
                      what policy it consulted, before deciding.
                 ================================================= -->
 
+                {% set route = routing.get(item.id) %}
+
+                {% if route %}
+                <div class="routing-panel">
+                    <span class="routing-label">Routed to</span>
+                    <strong>{{ route.routed_to }}</strong>
+                    {% if route.routing_reason %}
+                    <span class="routing-reason">{{ route.routing_reason }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 {% set plan = request_plans.get(item.id) %}
 
                 {% if plan %}

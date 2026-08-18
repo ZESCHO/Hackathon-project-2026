@@ -1752,3 +1752,29 @@ html[data-theme="light"] .password-toggle {
     background: rgba(0, 102, 204, 0.08) !important;
     border-color: rgba(0, 102, 204, 0.25) !important;
 }
+
+/* Which office a request was routed to, and why. */
+.routing-panel {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(167, 139, 250, 0.08);
+    border: 1px solid rgba(167, 139, 250, 0.22);
+}
+
+.routing-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.routing-reason {
+    font-family: ui-monospace, monospace;
+    font-size: 0.74rem;
+    color: var(--muted);
+}

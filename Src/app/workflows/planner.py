@@ -187,6 +187,16 @@ def _certificate_policy(fields):
 
     certificate_type = str(fields.get("certificate_type", "")).lower()
 
+    # knowledge_base/certificates.json names who issues what.
+    if "character" in certificate_type:
+        department = "Dean of Student Affairs"
+
+    elif any(word in certificate_type for word in CLEARANCE_CERTIFICATES):
+        department = "Registrar"
+
+    else:
+        department = "Academic Office"
+
     if any(word in certificate_type for word in CLEARANCE_CERTIFICATES):
 
         notes.append(_note(
@@ -197,7 +207,16 @@ def _certificate_policy(fields):
             blocking=False
         ))
 
-    return notes, {}
+    if "character" in certificate_type:
+
+        notes.append(_note(
+            "cert-003",
+            "Character Certificates require no disciplinary record in "
+            "the current academic year and are issued by the Dean of "
+            "Student Affairs."
+        ))
+
+    return notes, {"department": department}
 
 
 def _maintenance_policy(fields):
@@ -258,6 +277,7 @@ def _laboratory_policy(fields, now=None):
     if _matches(laboratory, RESTRICTED_LAB_KEYWORDS):
 
         derived["restricted"] = True
+        derived["department"] = "Faculty Co-signature (Research Labs)"
 
         notes.append(_note(
             LAB_SOURCE_RESTRICTED,
@@ -269,6 +289,7 @@ def _laboratory_policy(fields, now=None):
 
     else:
         derived["restricted"] = False
+        derived["department"] = "Laboratory Administration"
 
     # ---- advance notice ----
 

@@ -233,3 +233,45 @@ def migrate_users(db):
         f"users table rebuilt for username/registration_number "
         f"({len(migrated)} accounts kept)"
     )
+
+
+def migrate_approvals(db):
+    """
+    Rebuild the approvals table for routed approvals.
+
+    The original table keyed on workflow_id and required a named
+    approver, which cannot express "this belongs to the Accounts
+    Department". The table has never held a row, so it is rebuilt
+    rather than migrated.
+    """
+
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+
+    if "approvals" not in inspector.get_table_names():
+        return None
+
+    columns = {c["name"] for c in inspector.get_columns("approvals")}
+
+    if "routed_to" in columns:
+        return None
+
+    with db.engine.begin() as connection:
+
+        existing = connection.execute(
+            text("SELECT COUNT(*) FROM approvals")
+        ).scalar()
+
+        # Refuse to drop real data. If a row ever exists here, this
+        # needs to become a copying migration instead.
+        if existing:
+            print(
+                f"SKIPPED approvals rebuild: {existing} row(s) present. "
+                f"Migrate them by hand."
+            )
+            return None
+
+        connection.execute(text("DROP TABLE approvals"))
+
+    return "approvals table rebuilt for routed approvals"
