@@ -13,11 +13,18 @@ The agent must never state institutional policy from its own memory.
 """
 
 import re
+import time
 import json
 from datetime import datetime
 
-from app.ollama_client import ask_model, ModelUnavailable
-from app.rag.retriever import search, format_context, get_index
+from app.ollama_client import ask_model, ask_model_verbose, ModelUnavailable
+from app import trace
+from app.rag.retriever import (
+    search,
+    format_context,
+    get_index,
+    STOPWORDS
+)
 
 
 # Categories the platform can act on, plus the two non-action cases.
@@ -168,6 +175,56 @@ def _candidate_phrases(document, suffix):
     return found
 
 
+# Fields whose value must be traceable to something the user actually
+# typed. A room number or a block name cannot be inferred, so a value
+# that appears nowhere in the conversation was invented.
+VERBATIM_FIELDS = {"location", "room"}
+
+# Fields naming a specific thing. The generic head word is not enough:
+# "certificate" does not identify a certificate, and "lab" does not
+# identify a laboratory. The qualifier has to come from the user.
+QUALIFIED_FIELDS = {
+    "certificate_type": {"certificate", "certificates"},
+    "laboratory_name": {"lab", "labs", "laboratory", "laboratories"}
+}
+
+# Fields that may be paraphrased but must still be anchored in
+# something the user said, rather than supplied from nowhere.
+ANCHORED_FIELDS = {"purpose", "subject"}
+
+# Naming the service back at us is not an answer. "Purpose: certificate"
+# tells a clerk nothing, so these words cannot carry an anchored field
+# on their own.
+GENERIC_TERMS = {
+    "certificate", "certificates", "lab", "labs", "laboratory",
+    "laboratories", "maintenance", "grievance", "complaint", "booking",
+    "book", "request", "requests", "need", "needs", "want", "wants",
+    "issue", "problem", "service", "apply", "application", "get"
+}
+
+# Fields that require the user to have expressed a time at all.
+TEMPORAL_FIELDS = {"booking_date", "booking_time"}
+
+# Any digit, month, weekday or relative day counts as the user having
+# expressed a time. Without one, a date in the output was invented.
+_TEMPORAL_CUE = re.compile(
+    r"\d|"
+    r"jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|"
+    r"mon|tue|wed|thu|fri|sat|sun|"
+    r"today|tomorrow|tonight|morning|afternoon|evening|noon|"
+    r"next|this|week|weekend|day after",
+    re.IGNORECASE
+)
+
+# Fields the platform will ask for but will not block a request on.
+OPTIONAL_FIELDS = {
+    "maintenance": ["urgency", "available_time"],
+    "laboratory": [],
+    "certificate": [],
+    "grievance": ["urgency"]
+}
+
+
 FIELD_DESCRIPTIONS = {
     "certificate_type": "which certificate is wanted",
     "purpose": "why they need it / what it is for",
@@ -177,8 +234,45 @@ FIELD_DESCRIPTIONS = {
     "laboratory_name": "which laboratory",
     "booking_date": "the date, as DD Mon YYYY",
     "booking_time": "the time, as 24-hour HH:MM",
-    "subject": "a short title for the grievance"
+    "subject": "a short title for the grievance",
+    "urgency": "how urgent they say it is (low, medium or high)",
+    "available_time": "when they are free for a visit"
 }
+
+
+# What the user sees when asked for a field.
+FIELD_PROMPTS = {
+    "certificate_type": "certificate type",
+    "purpose": "purpose",
+    "location": "building or block",
+    "room": "room number",
+    "description": "what is wrong",
+    "laboratory_name": "laboratory",
+    "booking_date": "date",
+    "booking_time": "time",
+    "subject": "subject",
+    "urgency": "urgency - low / medium / high (optional)",
+    "available_time": "best time to visit (optional)"
+}
+
+
+def _timed_call(purpose, prompt, temperature=0.2):
+    """
+    Call the model and record the exchange in the trace log.
+    """
+
+    started = time.time()
+
+    answer, thinking = ask_model_verbose(prompt, temperature=temperature)
+
+    trace.model_call(
+        purpose,
+        thinking,
+        answer,
+        seconds=time.time() - started
+    )
+
+    return answer, thinking
 
 
 def _extract_fields(category, transcript, missing):
@@ -222,10 +316,16 @@ Return ONLY a JSON object with exactly these keys:
 """
 
     try:
-        data = _extract_json(ask_model(prompt, temperature=0.1))
+        raw, thinking = _timed_call(
+            f"extract missing fields: {', '.join(missing)}",
+            prompt,
+            temperature=0.1
+        )
+        data = _extract_json(raw)
 
     except (ModelUnavailable, ValueError, json.JSONDecodeError) as error:
         print("FIELD EXTRACTION ERROR:", error)
+        trace.note("EXTRACTION FAILED", str(error))
         return {}
 
     if not isinstance(data, dict):
@@ -237,14 +337,148 @@ Return ONLY a JSON object with exactly these keys:
 
         value = str(data.get(field, "")).strip()
 
-        if value and _is_plausible_value(field, value, transcript):
-            extracted[field] = value
+        if not value:
+            continue
+
+        if not _is_grounded_value(field, value, transcript):
+            trace.rejected(
+                field, value,
+                "not present in what the user typed (invented or "
+                "copied from a prompt example)"
+            )
+            continue
+
+        if not _is_plausible_value(field, value, transcript):
+            trace.rejected(
+                field, value,
+                "echoes the whole message back instead of answering"
+            )
+            continue
+
+        extracted[field] = value
 
     return extracted
 
 
 def _normalize_text(text):
     return " ".join(text.lower().split())
+
+
+def _tokens(text):
+    """
+    Word tokens of a string, lowercased.
+    """
+
+    return re.findall(r"[\w']+", _normalize_text(text))
+
+
+def _is_grounded_value(field, value, transcript):
+    """
+    Check that a field's value really came from the user.
+
+    The model will happily fill a field it was never given, copying a
+    value out of a worked example in the prompt ("room 204", "bank
+    loan") or inventing a plausible one. Filing that creates a real
+    ticket for the wrong room, or a certificate for a purpose the
+    student never stated, so each kind of field is checked against
+    what was actually typed.
+
+    Rules are deliberately different per field, because "how much may
+    this be reworded?" genuinely differs:
+
+      location / room     nothing may be added; every token must appear
+      certificate_type /
+      laboratory_name     the qualifier must come from the user, though
+                          a knowledge base alias may resolve it
+      booking_date / time the user must have expressed a time at all
+      purpose / subject   may be reworded, but must share a real word
+      description         free; the complaint is the message itself
+    """
+
+    value_text = _normalize_text(value)
+
+    if not value_text:
+        return False
+
+    transcript_tokens = set(_tokens(transcript))
+
+    haystack = _normalize_text(transcript)
+
+    # ---- must be reproduced exactly ----
+
+    if field in VERBATIM_FIELDS:
+
+        if value_text in haystack:
+            return True
+
+        # Token matching, not substring: block names are often a single
+        # letter, and "B block" would otherwise match the "b" inside
+        # "broken". "A block" and "B block" differ by one character and
+        # confusing them sends someone to the wrong building.
+        value_tokens = _tokens(value_text)
+
+        return bool(value_tokens) and all(
+            token in transcript_tokens for token in value_tokens
+        )
+
+    # ---- must name something the user named ----
+
+    if field in QUALIFIED_FIELDS:
+
+        # A knowledge base alias counts: "my TC" legitimately resolves
+        # to "Transfer Certificate" without those words being typed.
+        category = (
+            "certificate"
+            if field == "certificate_type"
+            else "laboratory"
+        )
+
+        for known in _known_values(category):
+
+            if _normalize_text(known["name"]) != value_text:
+                continue
+
+            if any(key and key in haystack for key in known["keys"]):
+                return True
+
+        generic = QUALIFIED_FIELDS[field]
+
+        qualifier = [
+            token
+            for token in _tokens(value_text)
+            if token not in generic
+        ]
+
+        # "certificate" alone identifies nothing.
+        return bool(qualifier) and all(
+            token in transcript_tokens for token in qualifier
+        )
+
+    # ---- the user must have mentioned a time at all ----
+
+    if field in TEMPORAL_FIELDS:
+        return bool(_TEMPORAL_CUE.search(transcript or ""))
+
+    # ---- may be reworded, must still be anchored ----
+
+    if field in ANCHORED_FIELDS:
+
+        content = [
+            token
+            for token in _tokens(value_text)
+            if token not in STOPWORDS
+            and token not in GENERIC_TERMS
+            and len(token) > 2
+        ]
+
+        # Everything left was the name of the service itself, which
+        # answers nothing.
+        if not content:
+            return False
+
+        return any(token in transcript_tokens for token in content)
+
+    return True
 
 
 def _is_plausible_value(field, value, transcript):
@@ -484,6 +718,12 @@ def answer_question(question, category=None):
 
     hits = _retrieve(question, category=category)
 
+    trace.note(
+        "RETRIEVED FROM KNOWLEDGE BASE",
+        [f"{hit['id']}  score={hit['score']}  {hit['title']}" for hit in hits]
+        or "nothing above the relevance threshold"
+    )
+
     if not hits:
         return _unverified_answer("No relevant knowledge base entry")
 
@@ -519,10 +759,12 @@ Return ONLY this JSON object:
 """
 
     try:
-        data = _extract_json(ask_model(prompt))
+        raw, thinking = _timed_call("answer from verified sources", prompt)
+        data = _extract_json(raw)
 
     except ModelUnavailable as error:
         print("MODEL UNAVAILABLE:", error)
+        trace.note("MODEL UNAVAILABLE", str(error))
         return _unverified_answer("Model unavailable")
 
     except (ValueError, json.JSONDecodeError) as error:
@@ -737,7 +979,15 @@ about rules, fees, timelines, eligibility or procedure is
 
 - "I need a bonafide certificate for a bank loan"  -> certificate
 - "How long does a bonafide certificate take?"     -> information
-- "The AC in room 204 is broken"                   -> maintenance
+- "The AC in room 12 of B block is broken"         -> maintenance
+- "the lab is dirty"                               -> maintenance
+- "the lab projector has stopped working"          -> maintenance
+- "I want to book the lab on Friday"               -> laboratory
+
+Naming a laboratory does not make it a booking. A complaint about
+something being broken, dirty, leaking or not working is maintenance,
+whatever room it happens in. Only a request to RESERVE a laboratory
+for a time slot is "laboratory".
 - "How fast are AC repairs handled?"               -> information
 
 A question mark, or a phrase like how long / how much / do I need /
@@ -755,23 +1005,36 @@ Required fields per category:
 - laboratory: laboratory_name, booking_date, booking_time, purpose
 - grievance: subject, description
 
+Optional fields. Capture these into "fields" when the user states
+them, but NEVER list them in "missing" and never treat their absence
+as incomplete:
+- maintenance: urgency, available_time
+- grievance: urgency
+
 Extract every required field the user has already given, anywhere in
 the conversation, into "fields" using those exact field names. Do not
 leave a field out because it was phrased casually. Worked examples:
 
-"I need a bonafide certificate for a bank loan"
--> fields: {{"certificate_type": "Bonafide Certificate",
-            "purpose": "Bank loan"}}, missing: []
+Copy values ONLY from the user's own message. Never carry a value
+over from these examples; they show the shape of the answer, not its
+content. If the user did not state something, it goes in "missing".
 
-"The AC in room 204 of B block is broken"
--> fields: {{"location": "B block", "room": "204",
-            "description": "AC is broken"}}, missing: []
+  message mentions a certificate and why they need it
+  -> both certificate_type and purpose are filled, missing: []
 
-"I want to book the robotics lab tomorrow"
--> fields: {{"laboratory_name": "Robotics Lab"}},
-   missing: ["booking_date", "booking_time", "purpose"]
+  message names a block and a room and the fault
+  -> location, room and description filled, missing: []
 
-Only list a field in "missing" if the user genuinely has not given it.
+  message names only the fault, with no place
+  -> description filled,
+     missing: ["location", "room"]      <- do NOT guess these
+
+  message names a laboratory but no date, time or reason
+  -> laboratory_name filled,
+     missing: ["booking_date", "booking_time", "purpose"]
+
+Only list a field in "missing" if the user genuinely has not given it,
+and only fill a field if the user genuinely did.
 
 Two fields must be reported using their official name, because
 institutional policy is matched against these exact names:
@@ -833,10 +1096,12 @@ Return exactly this structure:
 """
 
     try:
-        data = _extract_json(ask_model(prompt))
+        raw, thinking = _timed_call("classify the request", prompt)
+        data = _extract_json(raw)
 
     except ModelUnavailable as error:
         print("MODEL UNAVAILABLE:", error)
+        trace.note("MODEL UNAVAILABLE", str(error))
         return _fallback_understanding(
             "The assistant is offline right now, so I can't process "
             "that. Please use the service forms, or try again shortly."
@@ -929,6 +1194,23 @@ def _normalize(data, user_request, transcript=""):
     # SERVICE REQUESTS: TRUST THE FIELDS, NOT THE CLAIM
     # ----------------------------------------------------
 
+    # The classification prompt carries worked examples, and the model
+    # will copy a value straight out of one ("room 204") when the user
+    # gave none. Drop anything not traceable to what they typed BEFORE
+    # completeness is judged, or the request is filed against a room
+    # nobody mentioned.
+    for field in list(fields):
+
+        value = str(fields.get(field, "")).strip()
+
+        if value and not _is_grounded_value(field, value, transcript):
+            trace.rejected(
+                field, value,
+                "not present in what the user typed (invented or "
+                "copied from a prompt example)"
+            )
+            fields.pop(field)
+
     fields = _resolve_closed_vocabulary(category, fields, transcript)
 
     # A grievance's description is the complaint itself. Reusing the
@@ -954,10 +1236,19 @@ def _normalize(data, user_request, transcript=""):
         ]
 
     # One focused retry before giving up and asking the user for
-    # something they may already have told us.
+    # something they may already have told us. Optional fields ride
+    # along on the same call: we offer them in the question, so
+    # discarding an answer the user did give would be rude.
     if outstanding():
+
+        wanted = outstanding() + [
+            field
+            for field in OPTIONAL_FIELDS.get(category, [])
+            if not str(fields.get(field, "")).strip()
+        ]
+
         fields.update(
-            _extract_fields(category, transcript, outstanding())
+            _extract_fields(category, transcript, wanted)
         )
 
     result["fields"] = fields
@@ -966,16 +1257,27 @@ def _normalize(data, user_request, transcript=""):
 
     result["missing"] = actually_missing
 
+    trace.note("FIELDS ACCEPTED", fields)
+
     if actually_missing:
 
         result["status"] = "needs_clarification"
 
         # Always derived from the recomputed list: the model's own
         # question routinely disagrees with what is actually missing.
-        # Labels are translated; the field keys stay canonical.
-        result["clarification_question"] = "\n".join(
-            f"{field}:"
-            for field in actually_missing
+        # Optional fields are offered alongside, but never block filing.
+        wanted = actually_missing + [
+            field
+            for field in OPTIONAL_FIELDS.get(category, [])
+            if not str(fields.get(field, "")).strip()
+        ]
+
+        result["clarification_question"] = (
+            "Could you provide the following details listed below:\n\n"
+            + "\n".join(
+                f"{FIELD_PROMPTS.get(field, field)}:"
+                for field in wanted
+            )
         )
 
     else:

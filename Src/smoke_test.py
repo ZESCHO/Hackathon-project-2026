@@ -56,6 +56,10 @@ def main():
         "sqlite:///" + os.path.join(scratch, "smoke.db")
     )
 
+    # Thinking mode roughly doubles every call; the tests do not read
+    # the reasoning, so keep the suite fast.
+    os.environ["OLLAMA_THINK"] = "0"
+
     module = runpy.run_path("app.py", run_name="not_main")
 
     app = module["app"]
@@ -151,6 +155,59 @@ def main():
             "plan has multiple steps",
             workflow is not None and workflow.total_steps >= 4
         )
+
+    # ----------------------------------------------------------
+    section("TERSE INPUT MUST ASK, NOT INVENT")
+
+    # A message with no location once filed a ticket against "room 204",
+    # a value copied straight out of an example in the prompt. Terse
+    # input has to produce a question, never a fabricated request.
+    for message, label, expected in [
+        ("AC is broken", "maintenance", ["location", "room"]),
+        ("lab is dirty", "maintenance-2", ["location", "room"]),
+        ("need certificate", "certificate", ["certificate_type", "purpose"]),
+        ("book a lab", "laboratory", ["laboratory_name", "booking_date"]),
+    ]:
+        before = count(ServiceRequest)
+
+        reply = chat(message)
+
+        check(
+            f"'{message}' asks instead of filing",
+            reply.get("status") == "needs_clarification",
+            f"status={reply.get('status')}"
+        )
+        check(
+            f"'{message}' files nothing",
+            count(ServiceRequest) == before,
+            f"{count(ServiceRequest) - before} created"
+        )
+        check(
+            f"'{message}' asks for the right fields",
+            all(f in reply.get("missing", []) for f in expected),
+            f"missing={reply.get('missing')}"
+        )
+
+        invented = {
+            field: value
+            for field, value in (reply.get("fields") or {}).items()
+            if field in ("location", "room")
+            and value.lower() not in message.lower()
+        }
+
+        check(
+            f"'{message}' invents no location or room",
+            not invented,
+            str(invented)
+        )
+
+    reply = chat("AC is broken")
+
+    check(
+        "clarification uses the requested wording",
+        "Could you provide the following details"
+        in reply.get("clarification_question", "")
+    )
 
     # ----------------------------------------------------------
     section("APPROVAL GATE")

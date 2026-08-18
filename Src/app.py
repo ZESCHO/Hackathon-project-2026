@@ -12,6 +12,13 @@ from flask import (
     flash
 )
 import os
+
+from dotenv import load_dotenv
+
+# Load .env before anything reads os.environ, so SECRET_KEY and the
+# model settings actually take effect.
+load_dotenv()
+
 from app.ai_agent import understand_request
 
 from app.models import db, AuditLog, User
@@ -19,6 +26,7 @@ from app.models.request import ServiceRequest
 from app.models.workflow import Workflow
 from app.db_migrate import sync_columns
 from app.workflows.executor import create_workflow, execute_workflow
+from app import trace
 
 # =========================================================
 # FLASK APP
@@ -110,6 +118,8 @@ def chat():
             }
         }), 400
 
+    trace.start_turn(user_message, user=user.email)
+
     history = session.get("chat_history", [])
     history.append({"role": "user", "content": user_message})
 
@@ -152,6 +162,11 @@ def chat():
 
             session["chat_history"] = []
 
+            trace.decision(
+                f"NOT FILED - duplicate of request #{duplicate.id}"
+            )
+            trace.reply(user_request["message"])
+
             return jsonify({"reply": user_request})
 
         service_request = create_approval_request(
@@ -172,13 +187,29 @@ def chat():
 
         history = []
 
+        trace.decision(
+            f"FILED request #{service_request.id} "
+            f"({category}) - awaiting human approval"
+        )
+
     else:
         history.append({
             "role": "bot",
             "content": user_request.get("message", "")
         })
 
+        trace.decision(
+            f"NOT FILED - category={category}, "
+            f"status={user_request.get('status')}, "
+            f"missing={user_request.get('missing')}"
+        )
+
     session["chat_history"] = history[-MAX_HISTORY_TURNS:]
+
+    trace.reply(
+        user_request.get("clarification_question")
+        or user_request.get("message", "")
+    )
 
     return jsonify({"reply": user_request})
 
