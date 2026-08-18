@@ -771,7 +771,7 @@ def grievance_submit():
         flash("Please login before submitting a grievance.")
         return redirect(url_for("login"))
 
-    name = request.form.get("name", "").strip() or user.name
+    name = user.name
     category = request.form.get("category", "").strip()
     priority = request.form.get("priority", "").strip()
     subject = request.form.get("subject", "").strip()
@@ -822,8 +822,9 @@ def laboratory_book():
         flash("Please login before submitting a laboratory booking.")
         return redirect(url_for("login"))
 
-    name = request.form.get("name", "").strip() or user.name
-    student_id = request.form.get("student_id", "").strip() or (user.student_id or "N/A")
+    # Identity is taken from the session, not the form.
+    name = user.name
+    student_id = user.student_id or "Not on record"
     laboratory_name = request.form.get("laboratory", "").strip()
     booking_date = request.form.get("date", "").strip()
     booking_time = request.form.get("time", "").strip()
@@ -877,7 +878,7 @@ def maintenance_request():
         flash("Please login before submitting a maintenance request.")
         return redirect(url_for("login"))
 
-    name = request.form.get("name", "").strip() or user.name
+    name = user.name
     location = request.form.get("location", "").strip()
     room = request.form.get("room", "").strip()
     category = request.form.get("category", "").strip()
@@ -942,15 +943,12 @@ def certificate_request():
     # GET FORM DATA
     # --------------------------------------------------------
 
-    student_name = request.form.get(
-        "student_name",
-        ""
-    ).strip()
+    # Identity comes from the session, never from the form. A posted
+    # student_id would let anyone request a certificate in someone
+    # else's name.
+    student_name = user.name
 
-    student_id = request.form.get(
-        "student_id",
-        ""
-    ).strip()
+    student_id = user.student_id or "Not on record"
 
     certificate_type = request.form.get(
         "certificate_type",
@@ -966,20 +964,6 @@ def certificate_request():
     # --------------------------------------------------------
     # VALIDATION
     # --------------------------------------------------------
-
-    if not student_name:
-
-        flash("Please enter your name.")
-
-        return redirect(url_for("certificate"))
-
-
-    if not student_id:
-
-        flash("Please enter your Student ID.")
-
-        return redirect(url_for("certificate"))
-
 
     if not certificate_type:
 

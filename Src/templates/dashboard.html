@@ -1451,6 +1451,32 @@
             addAIMessage(message, "user");
             input.value = "";
 
+            // The local model takes several seconds, longer with
+            // reasoning enabled. Silence reads as a broken page, so
+            // show that it is working.
+            const thinking = document.createElement("div");
+            thinking.className = "ai-message ai-thinking";
+            thinking.innerHTML =
+                '<div class="ai-message-content">' +
+                '<span class="thinking-label">Thinking</span>' +
+                '<span class="thinking-dots"><i></i><i></i><i></i></span>' +
+                '</div>';
+
+            const chatBox = document.getElementById("ai-chat-box");
+            chatBox.appendChild(thinking);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const sendButton = document.querySelector(".ai-send-btn");
+            if (sendButton) sendButton.disabled = true;
+            input.disabled = true;
+
+            const finish = () => {
+                thinking.remove();
+                if (sendButton) sendButton.disabled = false;
+                input.disabled = false;
+                input.focus();
+            };
+
             let reply;
 
             try {
@@ -1461,9 +1487,12 @@
                 });
                 reply = (await response.json()).reply;
             } catch (error) {
+                finish();
                 addAIMessage("I could not reach the assistant. Please try again.", "bot");
                 return;
             }
+
+            finish();
 
             if (!reply) {
                 addAIMessage("I could not reach the assistant. Please try again.", "bot");

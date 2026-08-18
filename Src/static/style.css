@@ -1033,6 +1033,10 @@ textarea:focus,
     max-width: 80%;
     word-wrap: break-word;
     line-height: 1.5;
+    /* The agent sends its list of missing details one per line.
+       Without this, HTML collapses those newlines into spaces and the
+       whole list runs together on one line. */
+    white-space: pre-wrap;
 }
 
 .user-message .ai-message-content {
@@ -1514,4 +1518,83 @@ html[data-theme="light"] .empty-state {
 .workflow-step.step-rolled_back {
     border-left-color: var(--warning);
     opacity: 0.85;
+}
+
+/* =========================================================
+   THINKING INDICATOR
+   ========================================================= */
+
+.ai-thinking .ai-message-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.thinking-label {
+    opacity: 0.85;
+}
+
+.thinking-dots {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.thinking-dots i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.35;
+    animation: thinking-pulse 1.2s infinite ease-in-out;
+}
+
+.thinking-dots i:nth-child(2) { animation-delay: 0.18s; }
+.thinking-dots i:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes thinking-pulse {
+    0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+    30%           { opacity: 1;    transform: translateY(-3px); }
+}
+
+/* Respect users who ask for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+    .thinking-dots i { animation: none; opacity: 0.6; }
+}
+
+.ai-send-btn:disabled,
+#ai-input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* =========================================================
+   IDENTITY PANEL
+
+   Who the request is being filed as. Read-only: identity comes
+   from the session, never from a form field, so a student cannot
+   file a request in someone else's name.
+   ========================================================= */
+
+.identity-panel {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    border-radius: 12px;
+    background: rgba(125, 211, 252, 0.07);
+    border: 1px solid rgba(125, 211, 252, 0.18);
+}
+
+.identity-label {
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.identity-meta {
+    font-size: 0.85rem;
+    color: var(--muted);
 }

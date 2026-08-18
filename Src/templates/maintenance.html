@@ -69,19 +69,12 @@
                 class="service-form"
             >
 
-                <!-- NAME -->
-                <label for="name">
-                    Name
-                </label>
-
-                <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    placeholder="Enter your name"
-                    required
-                >
-
+                <!-- IDENTITY (from the signed-in account, not editable) -->
+                <div class="identity-panel">
+                    <span class="identity-label">Submitting as</span>
+                    <strong>{{ session.get("user_name") }}</strong>
+                    <span class="identity-meta">{{ session.get("user_email") }}</span>
+                </div>
 
                 <!-- LOCATION -->
                 <label for="location">
