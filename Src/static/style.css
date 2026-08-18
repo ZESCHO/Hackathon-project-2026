@@ -1607,3 +1607,57 @@ html[data-theme="light"] .empty-state {
     line-height: 1.5;
     color: var(--muted);
 }
+
+/* =========================================================
+   AUTH PAGES
+   ========================================================= */
+
+/* Signed-out pages carry no navigation, so the wordmark is centred
+   rather than pushed to one side by a nav that is not there. */
+.navbar.navbar-auth {
+    justify-content: center !important;
+}
+
+/* Show / hide password */
+.password-field {
+    position: relative;
+    display: block;
+}
+
+.password-field input {
+    width: 100%;
+    /* Room for the toggle, so a long password never runs under it. */
+    padding-right: 76px !important;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    padding: 6px 12px !important;
+    min-width: 60px;
+    border-radius: 8px !important;
+    background: rgba(125, 211, 252, 0.12) !important;
+    color: var(--text) !important;
+    border: 1px solid rgba(125, 211, 252, 0.28) !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    box-shadow: none !important;
+}
+
+.password-toggle:hover {
+    background: rgba(125, 211, 252, 0.2) !important;
+}
+
+.password-toggle:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+html[data-theme="light"] .password-toggle {
+    background: rgba(0, 102, 204, 0.08) !important;
+    border-color: rgba(0, 102, 204, 0.25) !important;
+}
